@@ -73,7 +73,7 @@ def train(data_dir, model_dir, args):
     # -- augmentation
     train_transform = A.Compose(
         [
-            A.RandomResizedCrop(512, 512, (0.75, 1.0), p=0.5),
+            #A.RandomResizedCrop(512, 512, (0.75, 1.0), p=0.5),
             A.HorizontalFlip(p=0.5),
             ToTensorV2(),
         ]
@@ -118,9 +118,9 @@ def train(data_dir, model_dir, args):
     wandb.watch(model)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = AdamP(model.parameters(), lr=args.lr, weight_decay=1e-3)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-3)
 
-    scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-4)
+    scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-5)
     class_labels = {
         0: "Backgroud",
         1: "General trash",
@@ -169,7 +169,7 @@ def train(data_dir, model_dir, args):
             if (idx + 1) % 25 == 0:
                 train_loss = loss_value / 25
                 print(
-                    f"Epoch [{epoch+1}/{args.epochs}], Step [{idx+1}/{len(train_loader)}], Loss: {round(loss.item(),4)}"
+                    f"Epoch [{epoch}/{args.epochs}], Step [{idx+1}/{len(train_loader)}], Loss: {round(loss.item(),4)}"
                 )
                 wandb.log({"train/loss": train_loss})
                 loss_value = 0
@@ -274,7 +274,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=2,
+        default=4,
         help="input batch size for training (default: 2)",
     )
     # parser.add_argument('--model', type=str, default='Unet3plus', help='model type (default: DeepLabV3Plus)')
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = "HRNetV2 module test"
+    wandb.run.name = "13_HRNetV2_W64_OCR_module test"
     wandb.config.update(args)
     print(args)
 
