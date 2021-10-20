@@ -13,8 +13,9 @@ from albumentations.pytorch import ToTensorV2
 import segmentation_models_pytorch as smp
 from adamp import AdamP
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR
+import yaml
 
-from model import *
+from model import get_seg_model
 from dataloader import *
 from utils import *
 
@@ -23,6 +24,8 @@ import torch
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 import wandb
+import torch.nn as nn
+import torch.nn.functional as F
 
 # from loss import FocalLoss
 import math
@@ -107,7 +110,10 @@ def train(data_dir, model_dir, args):
     )
 
     # -- model
-    model = UNet(n_classes=11)
+    config_path = '/opt/ml/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/HRNet/configs/hrnet_seg_ocr.yaml'
+    with open(config_path) as f:
+        cfg = yaml.load(f)
+    model = get_seg_model(cfg)
     model = model.to(device)
     wandb.watch(model)
 
@@ -141,9 +147,20 @@ def train(data_dir, model_dir, args):
             images, masks = images.to(device), masks.to(device)
 
             outputs = model(images)
-            optimizer.zero_grad()
+            for i in range(len(outputs)):
+                output = outputs[i]
+                ph, pw = output.size(2), output.size(3)
+                h, w = masks.size(1), masks.size(2)
+                if ph != h or pw != w:
+                    output = F.interpolate(input=output, size=(
+                        h, w), mode='bilinear', align_corners=True)
+                outputs[i] = output
 
-            loss = criterion(outputs, masks)
+            loss = 0
+            for i in range(len(outputs)):
+                loss += criterion(outputs[i], masks)
+            outputs = outputs[0]
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
@@ -163,6 +180,7 @@ def train(data_dir, model_dir, args):
         with torch.no_grad():
             cnt = 0
             total_loss = 0
+            print(f'Start validation #{epoch}')
             print("Calculating validation results...")
             model.eval()
             for idx, (images, masks, _) in enumerate(val_loader):
@@ -171,7 +189,19 @@ def train(data_dir, model_dir, args):
                 images, masks = images.to(device), masks.to(device)
 
                 outputs = model(images)
-                loss = criterion(outputs, masks)
+                for i in range(len(outputs)):
+                    output = outputs[i]
+                    ph, pw = output.size(2), output.size(3)
+                    h, w = masks.size(1), masks.size(2)
+                    if ph != h or pw != w:
+                        output = F.interpolate(input=output, size=(
+                            h, w), mode='bilinear', align_corners=True)
+                    outputs[i] = output
+
+                loss = 0
+                for i in range(len(outputs)):
+                    loss += criterion(outputs[i], masks)
+                outputs = outputs[0]
                 total_loss += loss
                 cnt += 1
 
@@ -221,7 +251,7 @@ def train(data_dir, model_dir, args):
                 print(
                     f"New best model for val mIoU : {mIoU:4.2%}! saving the best model.."
                 )
-                torch.save(model.state_dict(), f"{save_dir}/best.pth")
+                torch.save(model.state_dict(), f"{save_dir}/HRNetV2_W64_OCR_{epoch}_{mIoU}.pth")
                 best_mIoU = mIoU
             torch.save(model.state_dict(), f"{save_dir}/last.pth")
             print(
@@ -236,20 +266,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Data and model checkpoints directories
     parser.add_argument(
-        "--seed", type=int, default=42, help="random seed (default: 42)"
+        "--seed", type=int, default=16, help="random seed (default: 16)"
     )
     parser.add_argument(
-        "--epochs", type=int, default=25, help="number of epochs to train (default: 28)"
+        "--epochs", type=int, default=25, help="number of epochs to train (default: 25)"
     )
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=8,
-        help="input batch size for training (default: 8)",
+        default=2,
+        help="input batch size for training (default: 2)",
     )
     # parser.add_argument('--model', type=str, default='Unet3plus', help='model type (default: DeepLabV3Plus)')
     parser.add_argument(
-        "--lr", type=float, default=1e-5, help="learning rate (default: 5e-6)"
+        "--lr", type=float, default=1e-5, help="learning rate (default: 1e-5)"
     )
     parser.add_argument(
         "--name", default="exp", help="model save at {SM_MODEL_DIR}/{name}"
@@ -263,7 +293,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = "module test"
+    wandb.run.name = "HRNetV2 module test"
     wandb.config.update(args)
     print(args)
 

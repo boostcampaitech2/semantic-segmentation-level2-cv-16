@@ -11,7 +11,7 @@ import torch
 import json
 
 
-dataset_path = "../input/data"
+dataset_path = "../../../input/data"
 anns_file_path = dataset_path + "/" + "train_all.json"
 
 # Read annotations
