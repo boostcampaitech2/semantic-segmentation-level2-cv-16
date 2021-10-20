@@ -1,0 +1,2 @@
+- [ ] wandb visualization : 상현
+- [ ] annotation 겹친 후에  픽셀 수 : 상현
