@@ -103,6 +103,7 @@ def train(data_dir, model_dir, args):
 
     # -- model
     model =  UNet(n_classes=11)
+    model = model.to(device)
     wandb.watch(model)
 
 
