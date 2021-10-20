@@ -58,8 +58,8 @@ def collate_fn(batch):
 
 def train(data_dir, model_dir, args):
     torch.backends.cudnn.benchmark = True
-    train_path = data_dir + "/sample.json"
-    val_path = data_dir + "/sample.json"
+    train_path = data_dir + "/train.json"
+    val_path = data_dir + "/val.json"
     seed_everything(args.seed)
     save_dir = "./" + increment_path(os.path.join(model_dir, args.name))
     os.makedirs(save_dir)
