@@ -3,12 +3,12 @@ _base_ = [
     "upernet_swin.py",
     "cocotrash.py",
     "default_runtime.py",
-    "schedule_80k.py",
+    "schedule_160k.py",
     # "pretrain_384x384_1K.py",
 ]
 
 model = dict(
-    pretrained="/opt/ml/segmentation/mmsegmentation/configs/10/pretrain/upernet_swin_base_patch4_window12_512x512_160k_ade20k_pretrain_384x384_22K.pth",
+    pretrained="/opt/ml/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/mmsegmentation/configs/10/pretrain/upernet_swin_base_patch4_window12_512x512_160k_ade20k_pretrain_384x384_22K_converted.pth",
     backbone=dict(
         pretrain_img_size=384,
         embed_dims=128,
@@ -29,7 +29,7 @@ model = dict(
 optimizer = dict(
     _delete_=True,
     type="AdamW",
-    lr=0.00006,
+    lr=0.00001,
     betas=(0.9, 0.999),
     weight_decay=0.01,
     paramwise_cfg=dict(
@@ -53,4 +53,4 @@ lr_config = dict(
 )
 
 # By default, models are trained on 8 GPUs with 2 images per GPU
-data = dict(samples_per_gpu=4)
+data = dict(samples_per_gpu=8)
