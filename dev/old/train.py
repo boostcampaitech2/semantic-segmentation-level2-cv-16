@@ -73,8 +73,17 @@ def train(data_dir, model_dir, args):
     # -- augmentation
     train_transform = A.Compose(
         [
-            #A.RandomResizedCrop(512, 512, (0.75, 1.0), p=0.5),
+            A.RandomResizedCrop(256, 256),
             A.HorizontalFlip(p=0.5),
+            A.VerticalFlip(p=0.5),
+            # A.OneOf([
+            #     A.Resize(256,256),
+            #     A.Resize(384,384),
+            #     A.Resize(512,512),
+            #     A.Resize(768,768),
+            #     A.Resize(1024,1024)
+            # ]),
+            #A.RandomScale(p=1, scale_limit = [0.5, 2.0]),
             ToTensorV2(),
         ]
     )
@@ -134,6 +143,8 @@ def train(data_dir, model_dir, args):
         9: "Battery",
         10: "Clothing",
     }
+    n_class = 11
+
     # -- logging
     best_mIoU = 0
     best_val_loss = 99999999
@@ -141,6 +152,8 @@ def train(data_dir, model_dir, args):
         # train loop
         model.train()
         loss_value = 0
+        wandb.log({"Charts/lr" : scheduler.get_last_lr()[0]})
+        hist = np.zeros((11, 11))
         for idx, (images, masks, _) in enumerate(train_loader):
             images = torch.stack(images)  # (batch, channel, height, width)
             masks = torch.stack(masks).long()
@@ -164,14 +177,18 @@ def train(data_dir, model_dir, args):
             loss.backward()
             optimizer.step()
 
+            outputs = torch.argmax(outputs, dim=1).detach().cpu().numpy()
+            masks = masks.detach().cpu().numpy()
+            hist = add_hist(hist, masks, outputs, n_class=n_class)
+            acc, acc_cls, mIoU, fwavacc, IoU = label_accuracy_score(hist)
             loss_value += loss.item()
 
             if (idx + 1) % 25 == 0:
                 train_loss = loss_value / 25
                 print(
-                    f"Epoch [{epoch}/{args.epochs}], Step [{idx+1}/{len(train_loader)}], Loss: {round(loss.item(),4)}"
+                    f"Epoch [{epoch}/{args.epochs}], Step [{idx+1}/{len(train_loader)}], Loss: {round(loss.item(),4)}, mIoU: {round(mIoU,4)}"
                 )
-                wandb.log({"train/loss": train_loss})
+                wandb.log({"train/mIoU" : round(mIoU,4), "train/loss": train_loss})
                 loss_value = 0
         hist = np.zeros((11, 11))
 
@@ -293,7 +310,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = "13_HRNetV2_W64_OCR_module test"
+    wandb.run.name = "14_HRNetV2_W64_OCR_multi_scale"
     wandb.config.update(args)
     print(args)
 
