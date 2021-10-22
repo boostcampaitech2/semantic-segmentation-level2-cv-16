@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from layers import unetConv2
-from init_weights import init_weights
+from .layers import unetConv2
+from .init_weights import init_weights
 '''
     UNet 3+
 '''
@@ -688,7 +690,7 @@ class UNet_3Plus_DeepSup_CGM(nn.Module):
 
         self.cls = nn.Sequential(
                     nn.Dropout(p=0.5),
-                    nn.Conv2d(filters[4], 2, 1),
+                    nn.Conv2d(filters[4], n_classes, 1),
                     nn.AdaptiveMaxPool2d(1),
                     nn.Sigmoid())
 
@@ -702,7 +704,7 @@ class UNet_3Plus_DeepSup_CGM(nn.Module):
     def dotProduct(self,seg,cls):
         B, N, H, W = seg.size()
         seg = seg.view(B, N, H * W)
-        final = torch.einsum("ijk,ij->ijk", [seg, cls])
+        final = torch.einsum("ijk,ij->ijk", seg, cls)
         final = final.view(B, N, H, W)
         return final
 
@@ -721,12 +723,12 @@ class UNet_3Plus_DeepSup_CGM(nn.Module):
 
         h5 = self.maxpool4(h4)
         hd5 = self.conv5(h5)  # h5->20*20*1024
-
+        
         # -------------Classification-------------
+        # 0 or 1 하나의 값만을 적용하던 부분을 각 클래스 별로
+        # 0과 1을 구하도록 바꿈
         cls_branch = self.cls(hd5).squeeze(3).squeeze(2)  # (B,N,1,1)->(B,N)
-        cls_branch_max = cls_branch.argmax(dim=1)
-        cls_branch_max = cls_branch_max[:, np.newaxis].float()
-
+        
         ## -------------Decoder-------------
         h1_PT_hd4 = self.h1_PT_hd4_relu(self.h1_PT_hd4_bn(self.h1_PT_hd4_conv(self.h1_PT_hd4(h1))))
         h2_PT_hd4 = self.h2_PT_hd4_relu(self.h2_PT_hd4_bn(self.h2_PT_hd4_conv(self.h2_PT_hd4(h2))))
@@ -774,10 +776,11 @@ class UNet_3Plus_DeepSup_CGM(nn.Module):
 
         d1 = self.outconv1(hd1) # 256
 
-        d1 = self.dotProduct(d1, cls_branch_max)
-        d2 = self.dotProduct(d2, cls_branch_max)
-        d3 = self.dotProduct(d3, cls_branch_max)
-        d4 = self.dotProduct(d4, cls_branch_max)
-        d5 = self.dotProduct(d5, cls_branch_max)
+        d1 = self.dotProduct(d1, cls_branch)
+        d2 = self.dotProduct(d2, cls_branch)
+        d3 = self.dotProduct(d3, cls_branch)
+        d4 = self.dotProduct(d4, cls_branch)
+        d5 = self.dotProduct(d5, cls_branch)
 
-        return F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3), F.sigmoid(d4), F.sigmoid(d5)
+        return cls_branch, (F.sigmoid(d1), F.sigmoid(d2), F.sigmoid(d3),
+                            F.sigmoid(d4), F.sigmoid(d5))

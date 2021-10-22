@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 def BCE_loss(pred,label):

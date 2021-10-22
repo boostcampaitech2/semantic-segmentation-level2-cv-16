@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from init_weights import init_weights
+from .init_weights import init_weights
 
 
 class unetConv2(nn.Module):

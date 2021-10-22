@@ -77,7 +77,7 @@ def msssim(img1, img2, window_size=11, size_average=True, val_range=None, normal
     mcs = []
     for _ in range(levels):
         sim, cs = ssim(img1, img2, window_size=window_size, size_average=size_average, full=True, val_range=val_range)
-        print("sim",sim)
+        # print("sim",sim)
         mssim.append(sim)
         mcs.append(cs)
 
