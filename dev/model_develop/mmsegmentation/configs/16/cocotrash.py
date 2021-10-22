@@ -69,7 +69,7 @@ data = dict(
         type=dataset_type,
         reduce_zero_label=False,
         img_dir=data_root + "images/training",
-        ann_dir=data_root + "annotations_area/training",
+        ann_dir=data_root + "annotations/training",
         pipeline=train_pipeline,
     ),
     val=dict(
@@ -78,7 +78,7 @@ data = dict(
         type=dataset_type,
         reduce_zero_label=False,
         img_dir=data_root + "images/validation",
-        ann_dir=data_root + "annotations_area/validation",
+        ann_dir=data_root + "annotations/validation",
         pipeline=test_pipeline,
     ),
     test=dict(
