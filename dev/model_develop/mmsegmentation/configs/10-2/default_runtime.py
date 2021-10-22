@@ -2,13 +2,13 @@
 log_config = dict(
     interval=50,
     hooks=[
-        dict(type="TextLoggerHook"),
+        dict(type="TextLoggerHook", by_epoch=False),
         # dict(type='TensorboardLoggerHook')
         dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="segmentation",
-                name="12-HRNetV2_W48 + OCR",
+                name="10-Upernet_SwinB_p4_w12_areamask",
                 entity="passion-ate",
             ),
             by_epoch=False,

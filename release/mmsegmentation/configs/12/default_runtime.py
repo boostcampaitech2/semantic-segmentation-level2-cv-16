@@ -11,7 +11,6 @@ log_config = dict(
                 name="12-HRNetV2_W48 + OCR",
                 entity="passion-ate",
             ),
-            by_epoch=False,
         ),
     ],
 )
