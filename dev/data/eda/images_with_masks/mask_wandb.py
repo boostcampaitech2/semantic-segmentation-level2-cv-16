@@ -82,7 +82,8 @@ class ImagesWithMasks:
         # Background = 0
         masks = np.zeros((image_infos["height"], image_infos["width"]))
         # General trash = 1, ... , Cigarette = 10
-        anns = sorted(anns, key=lambda idx : len(idx['segmentation'][0]), reverse=False)
+        # anns = sorted(anns, key=lambda idx : len(idx['segmentation'][0]), reverse=False)
+        anns = sorted(anns, key=lambda idx : idx['area'], reverse=True)
         for i in range(len(anns)):
             className = self.get_classname(anns[i]['category_id'], cats)
             pixel_value = self.labels_to_class[className]
