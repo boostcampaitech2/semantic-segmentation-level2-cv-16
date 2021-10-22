@@ -4,9 +4,6 @@ __pycache__
 
 
 /**/__pycache__/
-
-/**/wandb/
-
 /**/._ipynb_checkpoint/
 
 *.csv
