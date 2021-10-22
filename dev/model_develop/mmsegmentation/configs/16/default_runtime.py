@@ -19,6 +19,6 @@ log_config = dict(
 dist_params = dict(backend="nccl")
 log_level = "INFO"
 load_from = None
-resume_from = None
+resume_from = "/opt/ml/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/mmsegmentation/work_dirs/16/latest.pth"
 workflow = [("train", 1)]
 cudnn_benchmark = True
