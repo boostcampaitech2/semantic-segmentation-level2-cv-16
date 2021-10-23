@@ -43,13 +43,11 @@ optimizer = dict(
 
 lr_config = dict(
     _delete_=True,
-    policy="CosineRestart",
-    periods=[5000, 15000, 30000],
-    restart_weights=[0.8, 0.6, 0.3],
-    warmup="linear",
-    warmup_iters=500,
-    warmup_ratio=0.1,
-    min_lr=1e-6,
+    policy="step",
+    warmup=None,
+    step=([40000]),
+    gamma=0.3,
+    min_lr=0.0,
     by_epoch=False,
 )
 

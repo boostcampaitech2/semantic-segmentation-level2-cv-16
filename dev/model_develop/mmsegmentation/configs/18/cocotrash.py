@@ -68,8 +68,8 @@ data = dict(
         palette=palette,
         type=dataset_type,
         reduce_zero_label=False,
-        img_dir=data_root + "images/sample",
-        ann_dir=data_root + "annotations_area/sample",
+        img_dir=data_root + "images_v1/training",
+        ann_dir=data_root + "annotations_v1/training",
         pipeline=train_pipeline,
     ),
     val=dict(
@@ -77,8 +77,8 @@ data = dict(
         palette=palette,
         type=dataset_type,
         reduce_zero_label=False,
-        img_dir=data_root + "images/sample",
-        ann_dir=data_root + "annotations_area/sample",
+        img_dir=data_root + "images_v1/validation",
+        ann_dir=data_root + "annotations_v1/validation",
         pipeline=test_pipeline,
     ),
     test=dict(
