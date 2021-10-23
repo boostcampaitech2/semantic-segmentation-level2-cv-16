@@ -8,11 +8,11 @@ log_config = dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="segmentation",
-                name="16-Upernet_SwinB_p4_w12_cosine_diceloss",
+                name="18-Upernet_SwinB_p4_w12_revisedv1",
                 entity="passion-ate",
             ),
-            commit=False,
             by_epoch=False,
+            with_step=False,
         ),
     ],
 )
