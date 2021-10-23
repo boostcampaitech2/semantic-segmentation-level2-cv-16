@@ -712,7 +712,7 @@ if __name__ == "__main__":
     summary(model)
 
     # model = model
-    model.eval()
-    tmp_inp = torch.zeros((1, 3, 256, 256)).float()# .cuda()
-    output = model(tmp_inp)
+    # model.eval()
+    # tmp_inp = torch.zeros((1, 3, 256, 256)).float()# .cuda()
+    # output = model(tmp_inp)
     # # of params: 70,364,040

@@ -60,8 +60,8 @@ def collate_fn(batch):
 
 def train(data_dir, model_dir, args):
     torch.backends.cudnn.benchmark = True
-    train_path = data_dir + "/train_v1.json"
-    val_path = data_dir + "/valid_v1.json"
+    train_path = data_dir + "/train_all_revise_v2.json"
+    val_path = data_dir + "/val.json"
     seed_everything(args.seed)
     save_dir = "./" + increment_path(os.path.join(model_dir, args.name))
     os.makedirs(save_dir)
@@ -197,33 +197,6 @@ def train(data_dir, model_dir, args):
                 )
                 wandb.log({"train/mIoU" : round(mIoU,4), "train/loss": train_loss})
                 loss_value = 0
-                wandb.log(
-                    {
-                        "train_image": wandb.Image(
-                            images[0, :, :, :],
-                            masks={
-                                "predictions": {
-                                    "mask_data": outputs[0, :, :],
-                                    "class_labels": class_labels,
-                                },
-                                "ground_truth": {
-                                    "mask_data": masks[0, :, :]
-                                    .detach()
-                                    .cpu()
-                                    .numpy(),
-                                    "class_labels": class_labels,
-                                },
-                            },
-                        )
-                    }
-                )
-
-
-
-
-
-
-
         hist = np.zeros((11, 11))
 
         ############validation##############
@@ -262,7 +235,7 @@ def train(data_dir, model_dir, args):
                 if idx % args.vis_every == 0:
                     wandb.log(
                         {
-                            "valid_image": wandb.Image(
+                            "visualize": wandb.Image(
                                 images[0, :, :, :],
                                 masks={
                                     "predictions": {
