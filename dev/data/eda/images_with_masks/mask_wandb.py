@@ -126,7 +126,7 @@ for i in range(len(data_loader)):
     if log_count%100 == 0:
         if bool(Run):
             Run.finish()
-        run_name = f"train-all-{log_count}-{log_count+99}"
+        run_name = f"area-train-all-{log_count}-{log_count+99}"
         Run = wandb.init(
             reinit=True, 
             project="images-with-masks",
