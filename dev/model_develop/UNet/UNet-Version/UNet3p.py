@@ -10,11 +10,12 @@ import random
 import torch
 import torch.nn as nn
 import numpy as np
+import pandas as pd
 
-from models.UNet_3Plus import UNet_3Plus_DeepSup_CGM #, UNet_3Plus_DeepSup
-from loss.bceLoss import BCE_loss
-from loss.iouLoss import IOU,IOU_loss
-from loss.msssimLoss import MSSSIM
+from my_utils.multi_losses import MultiLosses
+from my_utils.wandb_log_tools import log_mask_img_wandb
+from models.UNet_3Plus import (UNet_3Plus_DeepSup_CGM,
+                                 UNet_3Plus_DeepSup, UNet_3Plus)
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -41,14 +42,14 @@ random.seed(random_seed)
 
 
 batch_size = 2
-EPOCHS = 10
+EPOCHS = 30
 
 # In[4]:
 
 
 common_json_path = "/opt/ml/segmentation/input/data/"
-train_json_path = common_json_path + "train.json"
-val_json_path = common_json_path + "val.json"
+train_json_path = common_json_path + "train_v1.json"
+val_json_path = common_json_path + "valid_v1.json"
 test_json_path = common_json_path + "test.json"
 
 
@@ -76,12 +77,13 @@ train_dataset = CustomDataLoader(
     common_dir=common_json_path, json_path=train_json_path, 
     mode='train', transform=train_transform
 )
-
+train_sample = train_dataset[0]
 # validation dataset
 val_dataset = CustomDataLoader(
     common_dir=common_json_path, json_path=val_json_path, 
     mode='val', transform=val_transform
 )
+val_sample = val_dataset[0]
 '''
 # test dataset
 test_dataset = CustomDataLoader(
@@ -117,7 +119,7 @@ test_loader = torch.utils.data.DataLoader(
 # In[6]:
 
 
-# UNet_3Plus_DeepSup, UNet_3Plus_DeepSup_CGM
+# UNet_3Plus, UNet_3Plus_DeepSup, UNet_3Plus_DeepSup_CGM
 model = UNet_3Plus_DeepSup_CGM(
     in_channels=3,
     n_classes=len(train_dataset.category_names),
@@ -134,83 +136,87 @@ model = model.cuda()
 
 # In[8]:
 
+class_dict_path = "/opt/ml/segmentation/baseline_code/class_dict.csv"
+class_colormap = pd.read_csv(class_dict_path)
+class_to_labels ={idx:cls_name for idx, cls_name in enumerate(class_colormap["name"])}
+labels_to_class ={cls_name:idx for idx, cls_name in enumerate(class_colormap["name"])}
+
+multi_loss = MultiLosses()
+
 opt = torch.optim.Adam(
-    params=model.parameters(), lr=1e-4, weight_decay=0.00001
+    params=model.parameters(), lr=1e-3, weight_decay=0.001
 )
-
-bce_loss = nn.BCELoss()
-fcl_loss = nn.BCELoss(reduction='none')
-iou_loss = IOU(size_average=True)
-ms_ssim = MSSSIM()
-
 
 # In[9]:
 wandb.init(
-    entity='passion-ate',
-    project='segmentation',
+    entity='sang-hyun',
+    project='seg-unet3p',
     name='UNet3+'
 )
+iter_freq = 100
 tr_cnt, val_cnt = 0, 0
 for ep in range(EPOCHS):
     
     model.train()
     train_epoch_loss = 0
     for a_batch in train_loader:
-        x, y, cls_label = list(map(torch.stack, a_batch))
-        cls_branch, Dec = model(x.cuda())
-
-        iteration_loss = 0
-        iteration_loss += bce_loss(cls_branch, cls_label.cuda())
-        # for D in Dec:
-        #     iteration_loss += iou_loss(D, y.cuda())
-        #     iteration_loss += ms_ssim(D, y.cuda())
-        D = Dec[0]
-        focal_loss = fcl_loss(D, y.cuda())*((1-D)**2)
-        iteration_loss += focal_loss.mean()
-        iteration_loss += iou_loss(D, y.cuda())
-        iteration_loss += ms_ssim(D, y.cuda())
-        train_epoch_loss +=iteration_loss
+        x, y, gt, cls_label = list(map(torch.stack, a_batch))
+        cls_branch, prediction = model(x.cuda())
+        
+        iteration_loss = multi_loss(
+            prediction=prediction,
+            y=y, 
+            gt=gt, 
+            cls_branch=cls_branch,
+            cls_label=cls_label,
+        )
+        train_epoch_loss += iteration_loss
         
         opt.zero_grad()
         iteration_loss.backward()
         opt.step()
+        if not (tr_cnt % iter_freq):
+            multi_loss.wandb_log_step(step=tr_cnt)
+            log_mask_img_wandb(
+                sample=train_sample, 
+                model=model, 
+                mode="train", 
+                class_to_labels=class_to_labels
+            )
+            
         tr_cnt += 1
-        wandb.log(
-            data={"UNet/train_iter_loss": iteration_loss},
-            step=tr_cnt,
-        )
-    
+        
     with torch.no_grad():
         model.eval()
         valid_epoch_loss = 0
         for a_batch in val_loader:
-            x, y, cls_label = list(map(torch.stack, a_batch))
-            cls_branch, Dec = model(x.cuda())
+            x, y, gt, cls_label = list(map(torch.stack, a_batch))
+            cls_branch, prediction = model(x.cuda())
 
-            iteration_loss = 0
-            iteration_loss += bce_loss(cls_branch, cls_label.cuda())
-            # for D in Dec:
-            #     iteration_loss += iou_loss(D, y.cuda())
-            #     iteration_loss += ms_ssim(D, y.cuda())
-            D = Dec[0]
-            focal_loss = fcl_loss(D, y.cuda())*((1-D)**2)
-            iteration_loss += focal_loss.mean()
-            iteration_loss += iou_loss(D, y.cuda())
-            iteration_loss += ms_ssim(D, y.cuda())
-            valid_epoch_loss +=iteration_loss
-            val_cnt += 1
-            wandb.log(
-                data={"UNet/valid_iter_loss": iteration_loss},
-                step=val_cnt,
+            iteration_loss = multi_loss(
+                prediction=prediction,
+                y=y, 
+                gt=gt, 
+                cls_branch=cls_branch,
+                cls_label=cls_label,
             )
-    
+            valid_epoch_loss +=iteration_loss
+        
+        log_mask_img_wandb(
+            sample=val_sample, 
+            model=model, 
+            mode="valid", 
+            class_to_labels=class_to_labels
+        )
+            
     wandb.log(
         data={
             "UNet/train_epoch_loss": train_epoch_loss/len(train_dataset),
-            "UNet/val_epoch_loss": valid_epoch_loss/len(val_dataset)
+            "UNet/val_epoch_loss": valid_epoch_loss/len(val_dataset),
+            "epoch":ep
         },
-        step=ep
     )
+    torch.save(model,f"./saved_model/epoch_{ep}.pt")
 # In[10]:
 
 
