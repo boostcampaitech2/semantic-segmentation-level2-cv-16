@@ -144,7 +144,7 @@ labels_to_class ={cls_name:idx for idx, cls_name in enumerate(class_colormap["na
 multi_loss = MultiLosses()
 
 opt = torch.optim.Adam(
-    params=model.parameters(), lr=1e-3, weight_decay=0.001
+    params=model.parameters(), lr=3e-4, #weight_decay=0.001
 )
 
 # In[9]:
@@ -161,14 +161,13 @@ for ep in range(EPOCHS):
     train_epoch_loss = 0
     for a_batch in train_loader:
         x, y, gt, cls_label = list(map(torch.stack, a_batch))
-        cls_branch, prediction = model(x.cuda())
+        prediction = model(x.cuda())
         
         iteration_loss = multi_loss(
             prediction=prediction,
             y=y, 
             gt=gt, 
-            cls_branch=cls_branch,
-            cls_label=cls_label,
+            # cls_label=cls_label,
         )
         train_epoch_loss += iteration_loss
         
@@ -197,8 +196,7 @@ for ep in range(EPOCHS):
                 prediction=prediction,
                 y=y, 
                 gt=gt, 
-                cls_branch=cls_branch,
-                cls_label=cls_label,
+                # cls_label=cls_label,
             )
             valid_epoch_loss +=iteration_loss
         
