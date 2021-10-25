@@ -6,13 +6,13 @@ import torch.nn as nn
 from loss.bceLoss import BCE_loss
 from loss.iouLoss import IOU,IOU_loss
 from loss.msssimLoss import MSSSIM
-from my_utils.fcl_loss import FocalLoss
+
 
 
 class MultiLosses:
     def __init__(self):
-        self.bce_loss = nn.BCELoss()
-        self.fcl_loss = FocalLoss(gamma=2)#nn.CrossEntropyLoss(reduction='none')
+        self.bce_loss = nn.BCELoss(reduction='none')
+        self.fcl_loss = nn.CrossEntropyLoss()
         self.iou_loss = IOU(size_average=True)
         self.ms_ssim = MSSSIM()
 
@@ -39,14 +39,16 @@ class MultiLosses:
             self._iou_loss_value += self.iou_loss(decoded_img, y.cuda())
             self._ms_ssim_loss_value += self.ms_ssim(decoded_img, y.cuda())
             if gt is not None:
-                self._fcl_loss_value = self.fcl_loss(decoded_img, gt.cuda())
+                focal_loss_value = self.fcl_loss(decoded_img, gt.cuda())
+                focal_loss_value = focal_loss_value*(1-decoded_img)**2
+                self._fcl_loss_value += focal_loss_value.mean()
             else:
                 self._fcl_loss_value += 0
 
-        if cls_label is not None:
-            self._bce_loss_value += self.bce_loss(cls_branch, cls_label.cuda())
-        else:
-            self._bce_loss_value += 0
+            if cls_label is not None:
+                self._bce_loss_value += self.bce_loss(cls_branch, cls_label.cuda())
+            else:
+                self._bce_loss_value += 0
 
         self.iteration_loss = (self._iou_loss_value + self._ms_ssim_loss_value + 
                             self._fcl_loss_value + self._bce_loss_value)

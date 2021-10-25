@@ -12,7 +12,6 @@ import torch.nn as nn
 import numpy as np
 import pandas as pd
 
-from my_utils.lr_schd import CosineAnnealingWarmUpRestarts
 from my_utils.multi_losses import MultiLosses
 from my_utils.wandb_log_tools import log_mask_img_wandb
 from models.UNet_3Plus import (UNet_3Plus_DeepSup_CGM,
@@ -144,25 +143,15 @@ labels_to_class ={cls_name:idx for idx, cls_name in enumerate(class_colormap["na
 
 multi_loss = MultiLosses()
 
-# opt = torch.optim.Adam(
-#     params=model.parameters(), lr=3e-4, #weight_decay=0.001
-# )
-optimizer = torch.optim.Adam(
-    model.parameters(), lr = 1e-7
+opt = torch.optim.Adam(
+    params=model.parameters(), lr=3e-4, #weight_decay=0.001
 )
-scheduler = CosineAnnealingWarmUpRestarts(
-    optimizer, 
-    T_0=4000, T_mult=1, # per iteration
-    eta_max=0.1,  T_up=400, gamma=0.7
-)
-
-
 
 # In[9]:
 wandb.init(
     entity='sang-hyun',
     project='seg-unet3p',
-    name='UNet3+-adam-coslr-ds-cgm'
+    name='UNet3+'
 )
 iter_freq = 100
 tr_cnt, val_cnt = 0, 0
@@ -178,18 +167,13 @@ for ep in range(EPOCHS):
             prediction=prediction,
             y=y, 
             gt=gt, 
-            cls_label=cls_label,
+            # cls_label=cls_label,
         )
         train_epoch_loss += iteration_loss
         
-        optimizer.zero_grad()
+        opt.zero_grad()
         iteration_loss.backward()
-        optimizer.step()
-        scheduler.step()
-        wandb.log({
-            "lr":optimizer.param_groups[0]["lr"],
-            "tr_step":tr_cnt,
-        })
+        opt.step()
         if not (tr_cnt % iter_freq):
             multi_loss.wandb_log_step(step=tr_cnt)
             log_mask_img_wandb(
@@ -212,7 +196,7 @@ for ep in range(EPOCHS):
                 prediction=prediction,
                 y=y, 
                 gt=gt, 
-                cls_label=cls_label,
+                # cls_label=cls_label,
             )
             valid_epoch_loss +=iteration_loss
         
