@@ -30,8 +30,8 @@ class CustomDataLoader(Dataset):
         self.coco = COCO(json_path)
         self.dataset_path = common_dir
         self.category_names = [
-            'General trash', 'Paper', 'Paper pack', 'Metal', 'Glass', 
-            'Plastic', 'Styrofoam', 'Plastic bag', 'Battery', 'Clothing'
+            'Background', 'General trash', 'Paper', 'Paper pack', 'Metal',
+            'Glass', 'Plastic', 'Styrofoam', 'Plastic bag', 'Battery', 'Clothing'
         ]
 
     def get_classname(self, classID, cats):
@@ -46,9 +46,9 @@ class CustomDataLoader(Dataset):
         image_infos = self.coco.loadImgs(image_id)[0]
         
         # cv2 를 활용하여 image 불러오기
-        images = cv2.imread(os.path.join(self.dataset_path, image_infos['file_name']))
-        images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
-        images /= 255.0
+        _images = cv2.imread(os.path.join(self.dataset_path, image_infos['file_name']))
+        _images = cv2.cvtColor(_images, cv2.COLOR_BGR2RGB).astype(np.float32)
+        _images /= 255.0
         
         if (self.mode in ('train', 'val')):
             ann_ids = self.coco.getAnnIds(imgIds=image_infos['id'])
@@ -61,6 +61,12 @@ class CustomDataLoader(Dataset):
             # masks : size가 (height x width)인 2D
             # 각각의 pixel 값에는 "category id" 할당
             # Background = 0
+            ground_truth = np.zeros(
+                (
+                    image_infos["height"],
+                    image_infos["width"]
+                )
+            )
             masks = np.zeros(
                 (
                     len(self.category_names),
@@ -74,22 +80,29 @@ class CustomDataLoader(Dataset):
             anns = sorted(anns, key=lambda idx : idx['area'], reverse=True)
             for i in range(len(anns)):
                 className = self.get_classname(anns[i]['category_id'], cats)
-                pixel_value = self.category_names.index(className)
-                cls_onehots[pixel_value] = 1
-                masks[pixel_value][self.coco.annToMask(anns[i]) == 1] = 1
+                cate_idx = self.category_names.index(className)
+                cls_onehots[cate_idx] = 1
+                ground_truth[self.coco.annToMask(anns[i]) == 1] = cate_idx
+            ground_truth = ground_truth.astype("int")
+            
+            for i in range(len(self.category_names)):
+                masks[i][ground_truth==i] = 1
             masks = masks.astype(np.float32)
-
+            
             # transform -> albumentations 라이브러리 활용
             if self.transform is not None:
-                transformed = self.transform(image=images, mask=masks)
+                transformed = self.transform(image=_images, mask=masks)
                 images = transformed["image"]
                 masks = transformed["mask"]
-            return images, masks, cls_onehots#, image_infos
+                
+                transformed = self.transform(image=_images, mask=ground_truth)
+                ground_truth = transformed["mask"]
+            return images, masks, ground_truth, cls_onehots#, image_infos
         
         if self.mode == 'test':
             # transform -> albumentations 라이브러리 활용
             if self.transform is not None:
-                transformed = self.transform(image=images)
+                transformed = self.transform(image=_images)
                 images = transformed["image"]
             return images#, image_infos
     

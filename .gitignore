@@ -6,11 +6,13 @@ __pycache__
 /**/__pycache__/
 
 /**/wandb/
-
+/**/saved_model/
 /**/._ipynb_checkpoint/
 
 *.csv
 *.txt
 *.log
+*.out
 *.pth
 *.jpg
+*.pt
