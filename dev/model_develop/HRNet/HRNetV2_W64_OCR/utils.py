@@ -131,6 +131,7 @@ class FocalLoss(nn.Module):
         focal_loss = self.alpha*(1-BEC_EXP)**self.gamma*BCE
         return focal_loss
 
+#https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch
 ALPHA = 0.5 # < 0.5 penalises FP more, > 0.5 penalises FN more
 BETA = 0.5
 CE_RATIO = 0.5 #weighted contribution of modified CE loss compared to Dice loss

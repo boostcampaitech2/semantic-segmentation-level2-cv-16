@@ -332,7 +332,7 @@ if __name__ == "__main__":
         "--lr", type=float, default=1e-7, help="learning rate (default: 1e-5)"
     )
     parser.add_argument(
-        "--name", default="30_", help="model save at {SM_MODEL_DIR}/{name}"
+        "--name", default="33_", help="model save at {SM_MODEL_DIR}/{name}"
     )
     parser.add_argument("--log_every", type=int, default=25, help="logging interval")
     parser.add_argument(
@@ -343,7 +343,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = f"{args.name}HRNetV2_W64_OCR_cos_randomresizecrop"
+    wandb.run.name = f"{args.name}HRNetV2_W64_OCR_DI+CE_cos_rot+randomresizecrop"
     wandb.config.update(args)
     print(args)
 
