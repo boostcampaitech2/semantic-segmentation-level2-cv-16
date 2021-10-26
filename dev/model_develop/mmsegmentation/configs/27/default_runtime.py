@@ -8,7 +8,7 @@ log_config = dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="segmentation",
-                name="22-Upernet_SwinB_p4_w12_revisedv1_DiceCE 3:7",
+                name="27-Upernet_SwinB_p4_w12_revisedv1_CEDiceLovasz 5:3:2",
                 entity="passion-ate",
             ),
             by_epoch=False,
