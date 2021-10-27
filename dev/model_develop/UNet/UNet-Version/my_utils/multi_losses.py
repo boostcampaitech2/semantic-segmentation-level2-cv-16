@@ -13,15 +13,16 @@ from my_utils.fcl_loss import FocalLoss
 class MultiLosses:
     def __init__(self):
         self.bce_loss = nn.BCELoss()
-        self.fcl_loss = FocalLoss(gamma=5)#nn.CrossEntropyLoss(reduction='none')
+        self.fcl_loss = FocalLoss(gamma=140)#nn.CrossEntropyLoss(reduction='none')
         self.iou_loss = IOU(size_average=True)
         self.ms_ssim = MSSSIM()
 
     def init_loss_values(self):
-        self._iou_loss_value = 0
-        self._ms_ssim_loss_value = 0
-        self._fcl_loss_value = 0
-        self._bce_loss_value = 0
+        self._iou_loss_value = 0.0
+        self._ms_ssim_loss_value = 0.0
+        self._fcl_loss_value = 0.0
+        self._bce_loss_value = 0.0
+
     
     def __call__(
         self, prediction, 
@@ -29,25 +30,29 @@ class MultiLosses:
         cls_label=None,
         deep_super = True,
     ):
-        
+        '''
         if not isinstance(prediction,(list,tuple)):
             prediction = [prediction,]
             cls_branch = None
         else:
             cls_branch, prediction = prediction
-
+        
+        if not deep_super:
+            prediction = [prediction[0]]
+        '''
+        cls_branch, prediction = prediction
         self.init_loss_values()
         for decoded_img in prediction:
-            self._iou_loss_value += 0.01*self.iou_loss(decoded_img, y.cuda())
-            # self._ms_ssim_loss_value += -1*self.ms_ssim(decoded_img, y.cuda())
+            self._iou_loss_value += 0.00005*self.iou_loss(decoded_img, y.cuda())
+            self._ms_ssim_loss_value += -1*0.00005*self.ms_ssim(decoded_img, y.cuda())
             if gt is not None:
-                self._fcl_loss_value = 0.99*self.fcl_loss(decoded_img, gt.cuda())
+                self._fcl_loss_value = 0.9999*self.fcl_loss(decoded_img, gt.cuda())
             else:
                 self._fcl_loss_value += 0
-
-            if deep_super:
+            
+            if not deep_super:
                 break
-
+            
         if cls_label is not None:
             self._bce_loss_value += self.bce_loss(cls_branch, cls_label.cuda())
         else:

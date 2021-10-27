@@ -171,13 +171,13 @@ multi_loss = MultiLosses()
 #     params=model.parameters(), lr=3e-4, #weight_decay=0.001
 # )
 optimizer = torch.optim.Adam( #SGD(
-    model.parameters(), lr = 3e-4
+    model.parameters(), lr = 1e-8
 )
-# scheduler = CosineAnnealingWarmUpRestarts(
-#     optimizer, 
-#     T_0=100, T_mult=2, # per iteration
-#     eta_max=0.0003,  T_up=10, gamma=0.7
-# )
+scheduler = CosineAnnealingWarmUpRestarts(
+    optimizer, 
+    T_0=100, T_mult=2, # per iteration
+    eta_max=3e-3,  T_up=5, gamma=0.7
+)
 
 
 
@@ -227,11 +227,11 @@ for ep in range(EPOCHS):
             )
             
         tr_cnt += 1
-    # scheduler.step() # per epoch
-    # wandb.log({
-    #     "lr":optimizer.param_groups[0]["lr"],
-    #     "tr_step":tr_cnt,
-    # })
+    scheduler.step() # per epoch
+    wandb.log({
+        "lr":optimizer.param_groups[0]["lr"],
+        "tr_step":tr_cnt,
+    })
     with torch.no_grad():
         model.eval()
         valid_epoch_loss = 0

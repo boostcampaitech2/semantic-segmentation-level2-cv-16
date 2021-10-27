@@ -9,12 +9,14 @@ def _iou(pred, target, size_average = True):
         Iand1 = torch.sum(target[i,:,:,:]*pred[i,:,:,:])
         Ior1 = torch.sum(target[i,:,:,:]) + torch.sum(pred[i,:,:,:])-Iand1
         IoU1 = Iand1/Ior1
-        
-        IoU1 = Iand1/Ior1
-        
+
+        #penalty
+        inv_Iand1 = torch.sum((1-target[i,:,:,:])*pred[i,:,:,:])
+        inv_Ior1 = torch.sum((1-target[i,:,:,:])) + torch.sum(pred[i,:,:,:])-inv_Iand1
+        inv_IoU1 = inv_Iand1/inv_Ior1
 
         #IoU loss is (1-IoU1)
-        IoU = IoU + (1-IoU1) - torch.sum((target[i,:,:,:]-1)*pred[i,:,:,:])
+        IoU = IoU + (1-IoU1) + inv_IoU1
 
     return IoU/b
 
