@@ -69,11 +69,11 @@ train_transform = A.Compose(
     [
         A.Resize(width=256, height=256),
         A.Normalize(),
-        A.HorizontalFlip(p=0.5),
+        # A.HorizontalFlip(p=0.5),
         # A.VerticalFlip(p=0.5),
-        A.Rotate(),
-        ToTensorV2()
-    ],
+        # A.Rotate(),
+
+    ], # ToTensorV2()
     additional_targets=additional_targets
 )
 
@@ -81,8 +81,8 @@ val_transform = A.Compose(
     [
         A.Resize(width=256, height=256),
         A.Normalize(),
-        ToTensorV2()
-    ],
+        
+    ], # ToTensorV2()
     additional_targets=additional_targets
 )
 '''

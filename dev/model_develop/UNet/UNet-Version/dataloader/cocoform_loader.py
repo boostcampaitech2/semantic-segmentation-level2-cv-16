@@ -5,6 +5,8 @@ warnings.filterwarnings('ignore')
 import torch
 from torch.utils.data import Dataset
 import cv2
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 import numpy as np
 
@@ -110,6 +112,15 @@ class CustomDataLoader(Dataset):
                 images = transformed["image"]
                 masks = transformed["mask0"]
                 ground_truth = transformed["mask1"].type(torch.int64)
+                
+                H, W = ground_truth.shape
+                masks = A.Resize(width=W/2, height=H/2)(masks)
+                ground_truth = A.Resize(width=W/2, height=H/2)(ground_truth)
+                
+                images = ToTensorV2()(images)
+                masks = ToTensorV2()(masks)
+                ground_truth = ToTensorV2()(ground_truth)
+                
                 if masks.shape[0] != len(self.category_names):
                     masks = masks.permute(2,0,1)
                 
