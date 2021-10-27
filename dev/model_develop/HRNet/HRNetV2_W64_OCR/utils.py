@@ -102,20 +102,28 @@ class CosineAnnealingWarmUpRestarts(_LRScheduler):
         for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
             param_group['lr'] = lr
 
+'''
+    https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch
 
+'''
 class DiceLoss(nn.Module):
-
     def __init__(self, weight=None, size_average=True):
         super(DiceLoss, self).__init__()
 
     def forward(self, inputs, targets, smooth=1):
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
+        num_classes = inputs.size(1)
+        true_1_hot = torch.eye(num_classes)[targets]
 
-        intersection = (inputs * targets).sum()
-        dice = (2.*intersection+smooth)/(inputs.sum()+targets.sum()+smooth)
+        true_1_hot = true_1_hot.permute(0, 3, 1, 2).float()
+        probas = F.softmax(inputs, dim=1)
 
-        return 1-dice
+        true_1_hot = true_1_hot.type(inputs.type())
+        dims = (0,) + tuple(range(2, targets.ndimension()))
+        intersection = torch.sum(probas * true_1_hot, dims)
+        cardinality = torch.sum(probas + true_1_hot, dims)
+        dice = ((2. * intersection + smooth) / (cardinality + smooth)).mean()
+
+        return 1 - dice
 
 class FocalLoss(nn.Module):
 
@@ -132,30 +140,6 @@ class FocalLoss(nn.Module):
         return focal_loss
 
 #https://www.kaggle.com/bigironsphere/loss-function-library-keras-pytorch
-ALPHA = 0.5 # < 0.5 penalises FP more, > 0.5 penalises FN more
-BETA = 0.5
-CE_RATIO = 0.5 #weighted contribution of modified CE loss compared to Dice loss
-
-class ComboLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(ComboLoss, self).__init__()
-
-    def forward(self, inputs, targets, smooth=1, alpha=ALPHA, beta=BETA, eps=1e-9):
-        
-        #flatten label and prediction tensors
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
-        
-        #True Positives, False Positives & False Negatives
-        intersection = (inputs * targets).sum()    
-        dice = (2. * intersection + smooth) / (inputs.sum() + targets.sum() + smooth)
-        
-        inputs = torch.clamp(inputs, eps, 1.0 - eps)       
-        out = - (ALPHA * ((targets * torch.log(inputs)) + ((1 - ALPHA) * (1.0 - targets) * torch.log(1.0 - inputs))))
-        weighted_ce = out.mean(-1)
-        combo = (CE_RATIO * weighted_ce) - ((1 - CE_RATIO) * dice)
-        
-        return combo
 
 
 class DiceCELoss(nn.Module):
