@@ -240,7 +240,9 @@ class UNet_3Plus(nn.Module):
             torch.cat((h1_Cat_hd1, hd2_UT_hd1, hd3_UT_hd1, hd4_UT_hd1, hd5_UT_hd1), 1)))) # hd1->320*320*UpChannels
 
         d1 = self.outconv1(hd1)  # d1->320*320*n_classes
-        return F.softmax(d1, dim=1)
+        d1 = F.softmax(d1, dim=1)
+        d1[:,0,:,:] = 0
+        return d1
     
 '''
     UNet 3+ with deep supervision
@@ -776,11 +778,17 @@ class UNet_3Plus_DeepSup_CGM(nn.Module):
 
         d1 = self.outconv1(hd1) # 256
 
-        d1 = self.dotProduct(d1, cls_branch)
-        d2 = self.dotProduct(d2, cls_branch)
-        d3 = self.dotProduct(d3, cls_branch)
-        d4 = self.dotProduct(d4, cls_branch)
-        d5 = self.dotProduct(d5, cls_branch)
+        # d1 = self.dotProduct(d1, cls_branch)
+        # d2 = self.dotProduct(d2, cls_branch)
+        # d3 = self.dotProduct(d3, cls_branch)
+        # d4 = self.dotProduct(d4, cls_branch)
+        # d5 = self.dotProduct(d5, cls_branch)
 
-        return cls_branch, (F.softmax(d1, dim=1),F.softmax(d2, dim=1),
-                            F.softmax(d3, dim=1),F.softmax(d4, dim=1),F.softmax(d5, dim=1))
+        
+        d1 = F.softmax(d1, dim=1)
+        d2 = F.softmax(d2, dim=1)
+        d3 = F.softmax(d3, dim=1)
+        d4 = F.softmax(d4, dim=1)
+        d5 = F.softmax(d5, dim=1)
+        
+        return cls_branch, (d1, d2, d3, d4, d5)

@@ -14,7 +14,7 @@ import pandas as pd
 
 from my_utils.lr_schd import CosineAnnealingWarmUpRestarts
 from my_utils.multi_losses import MultiLosses
-from my_utils.wandb_log_tools import log_mask_img_wandb
+from my_utils.wandb_log_tools import log_mask_img_wandb, sample_mask_img_wandb
 from models.UNet_3Plus import (UNet_3Plus_DeepSup_CGM,
                                  UNet_3Plus_DeepSup, UNet_3Plus)
 
@@ -42,8 +42,8 @@ random.seed(random_seed)
 # In[3]:
 
 
-batch_size = 2
-EPOCHS = 30
+batch_size = 8
+EPOCHS = 1000
 
 # In[4]:
 
@@ -60,14 +60,31 @@ test_json_path = common_json_path + "test.json"
 # collate_fn needs for batch
 def collate_fn(batch):
     return tuple(zip(*batch))
+additional_targets={
+    'image': 'image',
+    'mask0': 'mask',
+    'mask1': 'mask',
+}
+train_transform = A.Compose(
+    [
+        A.Resize(width=256, height=256),
+        A.Normalize(),
+        A.HorizontalFlip(p=0.5),
+        # A.VerticalFlip(p=0.5),
+        A.Rotate(),
+        ToTensorV2()
+    ],
+    additional_targets=additional_targets
+)
 
-train_transform = A.Compose([
-                            ToTensorV2()
-                            ])
-
-val_transform = A.Compose([
-                          ToTensorV2()
-                          ])
+val_transform = A.Compose(
+    [
+        A.Resize(width=256, height=256),
+        A.Normalize(),
+        ToTensorV2()
+    ],
+    additional_targets=additional_targets
+)
 '''
 test_transform = A.Compose([
                            ToTensorV2()
@@ -78,13 +95,17 @@ train_dataset = CustomDataLoader(
     common_dir=common_json_path, json_path=train_json_path, 
     mode='train', transform=train_transform
 )
-train_sample = train_dataset[0]
+train_sample = []
+for i in range(5):
+    train_sample += [train_dataset[i]]
 # validation dataset
 val_dataset = CustomDataLoader(
     common_dir=common_json_path, json_path=val_json_path, 
     mode='val', transform=val_transform
 )
-val_sample = val_dataset[0]
+val_sample = []
+for i in range(5):
+    val_sample += [val_dataset[i]]
 '''
 # test dataset
 test_dataset = CustomDataLoader(
@@ -103,7 +124,7 @@ train_loader = torch.utils.data.DataLoader(
 
 val_loader = torch.utils.data.DataLoader(
     dataset=val_dataset, 
-    batch_size=batch_size,
+    batch_size=1,#batch_size,
     shuffle=False,
     num_workers=4,
     collate_fn=collate_fn
@@ -142,19 +163,21 @@ class_colormap = pd.read_csv(class_dict_path)
 class_to_labels ={idx:cls_name for idx, cls_name in enumerate(class_colormap["name"])}
 labels_to_class ={cls_name:idx for idx, cls_name in enumerate(class_colormap["name"])}
 
+
+
 multi_loss = MultiLosses()
 
 # opt = torch.optim.Adam(
 #     params=model.parameters(), lr=3e-4, #weight_decay=0.001
 # )
-optimizer = torch.optim.Adam(
-    model.parameters(), lr = 1e-7
+optimizer = torch.optim.Adam( #SGD(
+    model.parameters(), lr = 3e-4
 )
-scheduler = CosineAnnealingWarmUpRestarts(
-    optimizer, 
-    T_0=4000, T_mult=1, # per iteration
-    eta_max=0.1,  T_up=400, gamma=0.7
-)
+# scheduler = CosineAnnealingWarmUpRestarts(
+#     optimizer, 
+#     T_0=100, T_mult=2, # per iteration
+#     eta_max=0.0003,  T_up=10, gamma=0.7
+# )
 
 
 
@@ -162,8 +185,12 @@ scheduler = CosineAnnealingWarmUpRestarts(
 wandb.init(
     entity='sang-hyun',
     project='seg-unet3p',
-    name='UNet3+-adam-coslr-ds-cgm'
+    name='UNet3+-adam-coslr-ds'
 )
+
+# sample_mask_img_wandb(train_sample, class_to_labels, mode='train')
+# sample_mask_img_wandb(val_sample, class_to_labels, mode='valid')
+
 iter_freq = 100
 tr_cnt, val_cnt = 0, 0
 for ep in range(EPOCHS):
@@ -178,14 +205,14 @@ for ep in range(EPOCHS):
             prediction=prediction,
             y=y, 
             gt=gt, 
-            cls_label=cls_label,
+            # cls_label=cls_label,
+            deep_super = True
         )
         train_epoch_loss += iteration_loss
         
         optimizer.zero_grad()
         iteration_loss.backward()
         optimizer.step()
-        scheduler.step()
         wandb.log({
             "lr":optimizer.param_groups[0]["lr"],
             "tr_step":tr_cnt,
@@ -193,14 +220,18 @@ for ep in range(EPOCHS):
         if not (tr_cnt % iter_freq):
             multi_loss.wandb_log_step(step=tr_cnt)
             log_mask_img_wandb(
-                sample=train_sample, 
+                sample_list=train_sample, 
                 model=model, 
                 mode="train", 
                 class_to_labels=class_to_labels
             )
             
         tr_cnt += 1
-        
+    # scheduler.step() # per epoch
+    # wandb.log({
+    #     "lr":optimizer.param_groups[0]["lr"],
+    #     "tr_step":tr_cnt,
+    # })
     with torch.no_grad():
         model.eval()
         valid_epoch_loss = 0
@@ -212,12 +243,13 @@ for ep in range(EPOCHS):
                 prediction=prediction,
                 y=y, 
                 gt=gt, 
-                cls_label=cls_label,
+                # cls_label=cls_label,
+                deep_super = True
             )
             valid_epoch_loss +=iteration_loss
         
         log_mask_img_wandb(
-            sample=val_sample, 
+            sample_list=val_sample, 
             model=model, 
             mode="valid", 
             class_to_labels=class_to_labels
