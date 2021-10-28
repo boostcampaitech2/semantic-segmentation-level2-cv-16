@@ -8,7 +8,7 @@ log_config = dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="segmentation",
-                name="39-Upernet_CSWinB_p4_w12_revisedv1",
+                name="46-Upernet_SwinL_p4_w12_pseudo_rotation",
                 entity="passion-ate",
             ),
             by_epoch=False,
@@ -19,7 +19,6 @@ log_config = dict(
 # yapf:enable
 dist_params = dict(backend="nccl")
 log_level = "INFO"
-# load_from = "/opt/ml/upernet_cswin_base.pth"
 load_from = None
 resume_from = None
 workflow = [("train", 1)]

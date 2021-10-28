@@ -31,13 +31,14 @@ palette = [
     [64, 64, 128],
     [128, 0, 192],
 ]
-crop_size = (640, 640)
+crop_size = (512, 512)
 train_pipeline = [
     dict(type="LoadImageFromFile"),
     dict(type="LoadAnnotations"),
-    dict(type="Resize", img_scale=(640, 640), ratio_range=(0.5, 2.0)),
+    dict(type="Resize", img_scale=(512, 512), ratio_range=(0.5, 2.0)),
     dict(type="RandomCrop", crop_size=crop_size, cat_max_ratio=0.75),
     dict(type="RandomFlip", prob=0.5),
+    dict(type="RandomRotate", degree=[-45, 45], prob=0.5),
     dict(type="PhotoMetricDistortion"),
     dict(type="Normalize", **img_norm_cfg),
     dict(type="Pad", size=crop_size, pad_val=0, seg_pad_val=255),
@@ -48,7 +49,7 @@ test_pipeline = [
     dict(type="LoadImageFromFile"),
     dict(
         type="MultiScaleFlipAug",
-        img_scale=(640, 640),
+        img_scale=(512, 512),
         # img_ratios=[0.5, 0.75, 1.0, 1.25, 1.5, 1.75],
         flip=False,
         transforms=[
@@ -68,8 +69,8 @@ data = dict(
         palette=palette,
         type=dataset_type,
         reduce_zero_label=False,
-        img_dir=data_root + "images_v1/training",
-        ann_dir=data_root + "annotations_v1/training",
+        img_dir=data_root + "images_v1/training_pseudo",
+        ann_dir=data_root + "annotations_v1/training_pseudo",
         pipeline=train_pipeline,
     ),
     val=dict(
