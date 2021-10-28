@@ -13,7 +13,6 @@ from .base import BaseSegmentor
 @SEGMENTORS.register_module()
 class EncoderDecoder(BaseSegmentor):
     """Encoder Decoder segmentors.
-
     EncoderDecoder typically consists of backbone, decode_head, auxiliary_head.
     Note that auxiliary_head is only used for deep supervision during training,
     which could be dumped during inference.
@@ -121,7 +120,6 @@ class EncoderDecoder(BaseSegmentor):
 
     def forward_train(self, img, img_metas, gt_semantic_seg):
         """Forward function for training.
-
         Args:
             img (Tensor): Input images.
             img_metas (list[dict]): List of image info dict where each dict
@@ -131,7 +129,6 @@ class EncoderDecoder(BaseSegmentor):
                 `mmseg/datasets/pipelines/formatting.py:Collect`.
             gt_semantic_seg (Tensor): Semantic segmentation masks
                 used if the architecture supports semantic segmentation task.
-
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
@@ -154,7 +151,6 @@ class EncoderDecoder(BaseSegmentor):
     # TODO refactor
     def slide_inference(self, img, img_meta, rescale):
         """Inference by sliding-window with overlap.
-
         If h_crop > h_img or w_crop > w_img, the small patch will be used to
         decode without padding.
         """
@@ -218,7 +214,6 @@ class EncoderDecoder(BaseSegmentor):
 
     def inference(self, img, img_meta, rescale):
         """Inference with slide/whole style.
-
         Args:
             img (Tensor): The input image of shape (N, 3, H, W).
             img_meta (dict): Image info dict where each dict has: 'img_shape',
@@ -227,7 +222,6 @@ class EncoderDecoder(BaseSegmentor):
                 For details on the values of these keys see
                 `mmseg/datasets/pipelines/formatting.py:Collect`.
             rescale (bool): Whether rescale back to original shape.
-
         Returns:
             Tensor: The output segmentation map.
         """
@@ -266,7 +260,6 @@ class EncoderDecoder(BaseSegmentor):
 
     def aug_test(self, imgs, img_metas, rescale=True):
         """Test with augmentations.
-
         Only rescale=True is supported.
         """
         # aug_test rescale all imgs back to ori_shape for now

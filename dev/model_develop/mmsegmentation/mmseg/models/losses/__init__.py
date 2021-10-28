@@ -7,7 +7,6 @@ from .cross_entropy_loss import (
     mask_cross_entropy,
 )
 from .dice_loss import DiceLoss
-from .dicece_loss import DiceCELoss
 from .lovasz_loss import LovaszLoss
 from .utils import reduce_loss, weight_reduce_loss, weighted_loss
 
@@ -23,5 +22,4 @@ __all__ = [
     "weighted_loss",
     "LovaszLoss",
     "DiceLoss",
-    "DiceCELoss",
 ]

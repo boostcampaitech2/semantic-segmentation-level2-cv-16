@@ -29,7 +29,7 @@ model = dict(
 optimizer = dict(
     _delete_=True,
     type="AdamW",
-    lr=0.00002,
+    lr=0.00001,
     betas=(0.9, 0.999),
     weight_decay=0.01,
     paramwise_cfg=dict(
@@ -37,21 +37,21 @@ optimizer = dict(
             "absolute_pos_embed": dict(decay_mult=0.0),
             "relative_position_bias_table": dict(decay_mult=0.0),
             "norm": dict(decay_mult=0.0),
+            "head": dict(lr_mult=5.0),
         }
     ),
 )
 
 lr_config = dict(
     _delete_=True,
-    policy="CosineRestart",
-    periods=[30, 50],
-    restart_weights=[1.0, 0.5],
-    warmup="linear",
-    warmup_iters=500,
-    warmup_ratio=0.01,
-    min_lr=6e-6,
-    by_epoch=True,
+    policy="step",
+    warmup=None,
+    step=([40000]),
+    gamma=0.3,
+    min_lr=0.0,
+    by_epoch=False,
 )
 
 # By default, models are trained on 8 GPUs with 2 images per GPU
 data = dict(samples_per_gpu=8)
+seed = 16
