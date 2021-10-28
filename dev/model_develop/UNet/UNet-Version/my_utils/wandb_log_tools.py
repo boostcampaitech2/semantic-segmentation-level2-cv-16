@@ -4,6 +4,7 @@ def log_mask_img_wandb(sample_list, model, mode, class_to_labels):
     
     mask_img = []
     for sample in sample_list:
+        qtr = sample[-1]
         img = sample[0]
         _img = img.permute(1,2,0).detach().numpy()
         gt = sample[2].detach().numpy()
@@ -35,7 +36,7 @@ def log_mask_img_wandb(sample_list, model, mode, class_to_labels):
             mask_dict.update(decoded_masks)
 
         mask_img += [wandb.Image(
-            img,
+            qtr,
             caption=f"{mode} sample",
             masks=mask_dict,
         )]
@@ -44,7 +45,7 @@ def log_mask_img_wandb(sample_list, model, mode, class_to_labels):
 def sample_mask_img_wandb(sample_list, class_to_labels, mode):
     
     for sample in sample_list:
-        x, y, gt, _ = sample
+        x, y, gt, qtr = sample
 
         img = x.permute(1,2,0).detach().numpy()
         y = y.detach().numpy()
@@ -67,7 +68,7 @@ def sample_mask_img_wandb(sample_list, class_to_labels, mode):
             )
         
         mask_img = wandb.Image(
-                img,
+                qtr,
                 caption=f"{mode} sample",
                 masks=mask_dict,
             )
