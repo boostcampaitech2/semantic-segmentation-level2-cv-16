@@ -15,8 +15,10 @@ import pandas as pd
 from my_utils.lr_schd import CosineAnnealingWarmUpRestarts
 from my_utils.multi_losses import MultiLosses
 from my_utils.wandb_log_tools import log_mask_img_wandb, sample_mask_img_wandb
-from models.UNet_3Plus import (UNet_3Plus_DeepSup_CGM,
-                                 UNet_3Plus_DeepSup, UNet_3Plus)
+# from models.UNet_3Plus import (UNet_3Plus_DeepSup_CGM,
+#                                 UNet_3Plus_DeepSup, UNet_3Plus)
+
+from models.ResUNet_3Plus import ResUNet_3Plus_DeepSup_CGM
 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
@@ -48,9 +50,9 @@ EPOCHS = 1000
 # In[4]:
 
 
-common_json_path = "/opt/ml/segmentation/input/data/"
-train_json_path = common_json_path + "train_v1.json"
-val_json_path = common_json_path + "valid_v1.json"
+common_json_path = "/tf/P_stage/P_stage_segmentation/segmentation/input/data/"
+train_json_path = common_json_path + "train.json"
+val_json_path = common_json_path + "val.json"
 test_json_path = common_json_path + "test.json"
 
 
@@ -141,8 +143,9 @@ test_loader = torch.utils.data.DataLoader(
 # In[6]:
 
 
-# UNet_3Plus, UNet_3Plus_DeepSup, UNet_3Plus_DeepSup_CGM
-model = UNet_3Plus_DeepSup_CGM(
+# UNet_3Plus, UNet_3Plus_DeepSup, UNet_3Plus_DeepSup_CGM, 
+# ResUNet_3Plus_DeepSup_CGM
+model = ResUNet_3Plus_DeepSup_CGM(
     in_channels=3,
     n_classes=len(train_dataset.category_names),
     # feature_scale=4,
@@ -158,12 +161,16 @@ model = model.cuda()
 
 # In[8]:
 
-class_dict_path = "/opt/ml/segmentation/baseline_code/class_dict.csv"
+class_dict_path = "/tf/P_stage/P_stage_segmentation/segmentation/baseline_code/class_dict.csv"
 class_colormap = pd.read_csv(class_dict_path)
 class_to_labels ={idx:cls_name for idx, cls_name in enumerate(class_colormap["name"])}
 labels_to_class ={cls_name:idx for idx, cls_name in enumerate(class_colormap["name"])}
 
-
+wandb.init(
+    entity='sang-hyun',
+    project='seg-unet3p',
+    name='ResUNet3+-adam-coslr-deepsuper=CEL'
+)
 
 multi_loss = MultiLosses()
 
@@ -171,22 +178,21 @@ multi_loss = MultiLosses()
 #     params=model.parameters(), lr=3e-4, #weight_decay=0.001
 # )
 optimizer = torch.optim.Adam( #SGD(
-    model.parameters(), lr = 1e-8
+    model.parameters(), lr = 0
 )
 scheduler = CosineAnnealingWarmUpRestarts(
     optimizer, 
-    T_0=100, T_mult=2, # per iteration
-    eta_max=3e-3,  T_up=5, gamma=0.7
+    T_0=200, T_mult=2, # per iteration
+    eta_max=1e-5,  T_up=20, gamma=0.8
 )
-
+wandb.log({
+    "lr":optimizer.param_groups[0]["lr"],
+    "tr_step": 0,
+})
 
 
 # In[9]:
-wandb.init(
-    entity='sang-hyun',
-    project='seg-unet3p',
-    name='UNet3+-adam-coslr-ds'
-)
+
 
 # sample_mask_img_wandb(train_sample, class_to_labels, mode='train')
 # sample_mask_img_wandb(val_sample, class_to_labels, mode='valid')
@@ -198,7 +204,7 @@ for ep in range(EPOCHS):
     model.train()
     train_epoch_loss = 0
     for a_batch in train_loader:
-        x, y, gt, cls_label = list(map(torch.stack, a_batch))
+        x, y, gt, cls_label, _ = list(map(torch.stack, a_batch))
         prediction = model(x.cuda())
         
         iteration_loss = multi_loss(
@@ -213,10 +219,6 @@ for ep in range(EPOCHS):
         optimizer.zero_grad()
         iteration_loss.backward()
         optimizer.step()
-        wandb.log({
-            "lr":optimizer.param_groups[0]["lr"],
-            "tr_step":tr_cnt,
-        })
         if not (tr_cnt % iter_freq):
             multi_loss.wandb_log_step(step=tr_cnt)
             log_mask_img_wandb(
@@ -236,7 +238,7 @@ for ep in range(EPOCHS):
         model.eval()
         valid_epoch_loss = 0
         for a_batch in val_loader:
-            x, y, gt, cls_label = list(map(torch.stack, a_batch))
+            x, y, gt, cls_label, _ = list(map(torch.stack, a_batch))
             prediction = model(x.cuda())
 
             iteration_loss = multi_loss(

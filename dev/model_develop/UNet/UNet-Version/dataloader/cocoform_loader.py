@@ -111,20 +111,27 @@ class CustomDataLoader(Dataset):
                 )
                 images = transformed["image"]
                 masks = transformed["mask0"]
-                ground_truth = transformed["mask1"].type(torch.int64)
+                ground_truth = transformed["mask1"]
                 
                 H, W = ground_truth.shape
-                masks = A.Resize(width=W/2, height=H/2)(masks)
-                ground_truth = A.Resize(width=W/2, height=H/2)(ground_truth)
-                
-                images = ToTensorV2()(images)
-                masks = ToTensorV2()(masks)
-                ground_truth = ToTensorV2()(ground_truth)
+                Resize = A.Compose([
+                    A.Resize(width=W//2, height=H//2),
+                    ToTensorV2()
+                ],additional_targets={
+                    'image': 'image',
+                    'mask0': 'mask',
+                    'mask1': 'mask',
+                })
+                Resized = Resize(image=images, mask0=masks, mask1=ground_truth)
+                qtr = Resized["image"]
+                masks = Resized["mask0"]
+                ground_truth = Resized["mask1"]
+                images = ToTensorV2()(image=images)["image"]
                 
                 if masks.shape[0] != len(self.category_names):
                     masks = masks.permute(2,0,1)
                 
-            return images, masks, ground_truth, cls_onehots#, image_infos
+            return images, masks, ground_truth.type(torch.int64), cls_onehots, qtr#, image_infos
         
         if self.mode == 'test':
             # transform -> albumentations 라이브러리 활용

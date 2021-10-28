@@ -1,5 +1,6 @@
 
 import wandb
+import torch
 import torch.nn as nn
 
 
@@ -10,10 +11,17 @@ from my_utils.fcl_loss import FocalLoss
 
 # import pytorch_msssim
 
+category_names = [
+    'Background', 'General trash', 'Paper', 'Paper pack', 'Metal',
+    'Glass', 'Plastic', 'Styrofoam', 'Plastic bag', 'Battery', 'Clothing'
+]
+panelty = 1e-2
+w = [panelty,1,panelty,1,1,1,1,1,panelty,1,1]
 class MultiLosses:
     def __init__(self):
         self.bce_loss = nn.BCELoss()
-        self.fcl_loss = FocalLoss(gamma=140)#nn.CrossEntropyLoss(reduction='none')
+        # self.fcl_loss = FocalLoss(gamma=5)#nn.CrossEntropyLoss(reduction='none')
+        self.fcl_loss = nn.CrossEntropyLoss(weight=torch.tensor(w).cuda())
         self.iou_loss = IOU(size_average=True)
         self.ms_ssim = MSSSIM()
 
@@ -43,16 +51,21 @@ class MultiLosses:
         cls_branch, prediction = prediction
         self.init_loss_values()
         for decoded_img in prediction:
-            self._iou_loss_value += 0.00005*self.iou_loss(decoded_img, y.cuda())
-            self._ms_ssim_loss_value += -1*0.00005*self.ms_ssim(decoded_img, y.cuda())
+            # self._iou_loss_value += self.iou_loss(decoded_img, y.cuda())
+            # self._ms_ssim_loss_value += 1 -1*self.ms_ssim(decoded_img, y.cuda())
             if gt is not None:
-                self._fcl_loss_value = 0.9999*self.fcl_loss(decoded_img, gt.cuda())
+                self._fcl_loss_value = self.fcl_loss(decoded_img, gt.cuda())
             else:
                 self._fcl_loss_value += 0
             
             if not deep_super:
                 break
-            
+        
+        if deep_super:
+            self._iou_loss_value /= len(prediction)
+            self._ms_ssim_loss_value /= len(prediction)
+            self._fcl_loss_value /= len(prediction)
+
         if cls_label is not None:
             self._bce_loss_value += self.bce_loss(cls_branch, cls_label.cuda())
         else:

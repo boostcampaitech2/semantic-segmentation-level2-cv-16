@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+from functools import partial as ptl
 
 import torch
 import torch.nn as nn
@@ -26,18 +27,16 @@ class ResUNet_3Plus_DeepSup_CGM(nn.Module):
         self.resnet101 = models.resnet101(pretrained=True)
         
         #params freeze
-        for param in self.resnet101.parameters():
-            param.requires_grad = False
+        # for param in self.resnet101.parameters():
+            # param.requires_grad = False
         
-        self.outputs = []
-        def hook(module, input, output):
-            self.outputs.append(output)
+        self.flush()
         
         # self.h0 = self.resnet101.maxpool.register_forward_hook(hook)
-        self.h1 = self.resnet101.layer1[2].bn3.register_forward_hook(hook)
-        self.h2 = self.resnet101.layer2[3].bn3.register_forward_hook(hook)
-        self.h3 = self.resnet101.layer3[22].bn3.register_forward_hook(hook)
-        self.h4 = self.resnet101.layer4[2].bn3.register_forward_hook(hook)
+        self.h1 = self.resnet101.layer1[2].bn3.register_forward_hook(self.hook)
+        self.h2 = self.resnet101.layer2[3].bn3.register_forward_hook(self.hook)
+        self.h3 = self.resnet101.layer3[22].bn3.register_forward_hook(self.hook)
+        self.h4 = self.resnet101.layer4[2].bn3.register_forward_hook(self.hook)
         
         '''original encoder
         self.conv1 = unetConv2(self.in_channels, filters[0], self.is_batchnorm)
@@ -147,11 +146,11 @@ class ResUNet_3Plus_DeepSup_CGM(nn.Module):
         self.relu1d_1 = nn.ReLU(inplace=True)
 
         # -------------Bilinear Upsampling--------------
-        self.upscore6 = nn.Upsample(scale_factor=32,mode='bilinear')###
-        self.upscore5 = nn.Upsample(scale_factor=16,mode='bilinear')
-        self.upscore4 = nn.Upsample(scale_factor=8,mode='bilinear')
-        self.upscore3 = nn.Upsample(scale_factor=4,mode='bilinear')
-        self.upscore2 = nn.Upsample(scale_factor=2, mode='bilinear')
+        self.upscore5 = nn.Upsample(scale_factor=32,mode='bilinear')
+        self.upscore4 = nn.Upsample(scale_factor=16,mode='bilinear')
+        self.upscore3 = nn.Upsample(scale_factor=8,mode='bilinear')
+        self.upscore2 = nn.Upsample(scale_factor=4, mode='bilinear')
+        self.upscore1 = nn.Upsample(scale_factor=2, mode='bilinear')
 
         # DeepSup
         self.outconv1 = nn.Conv2d(self.UpChannels, n_classes, 3, padding=1)
@@ -171,7 +170,12 @@ class ResUNet_3Plus_DeepSup_CGM(nn.Module):
                 init_weights(m, init_type='kaiming')
             elif isinstance(m, nn.BatchNorm2d):
                 init_weights(m, init_type='kaiming')
+    def flush(self):
+        self.outputs=[]
 
+    def hook(self,module, input, output):
+        self.outputs.append(output)
+        
     def dotProduct(self,seg,cls):
         B, N, H, W = seg.size()
         seg = seg.view(B, N, H * W)
@@ -183,11 +187,7 @@ class ResUNet_3Plus_DeepSup_CGM(nn.Module):
         ## -------------Encoder-------------
         self.resnet101(inputs)
         (h1, h2, h3, hd4) = self.outputs
-        print(h1.shape)
-        print(h2.shape)
-        print(h3.shape)
-        print(hd4.shape)
-        self.outputs = [] # flush
+        self.flush() # flush
         '''original endocer
         h1 = self.conv1(inputs)  # h1->320*320*64
 
@@ -240,7 +240,7 @@ class ResUNet_3Plus_DeepSup_CGM(nn.Module):
         d2 = self.upscore2(d2) # 128->256
 
         d1 = self.outconv1(hd1) # 256
-
+        d1 = self.upscore1(d1) # 억지
         # d1 = self.dotProduct(d1, cls_branch)
         # d2 = self.dotProduct(d2, cls_branch)
         # d3 = self.dotProduct(d3, cls_branch)
