@@ -7,3 +7,10 @@
 * 결과물
   * Augmented Image
   * Json File for Augmented Image
+
+
+
+* (10/29) Update
+  * Module file 추가 - PassionateMix.py
+  * Mix_version2.ipynb 업로드
+  * transform 관련 함수 추가 예정
