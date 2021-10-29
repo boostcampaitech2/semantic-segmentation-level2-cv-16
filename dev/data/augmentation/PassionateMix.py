@@ -114,8 +114,11 @@ def resize_foreground_backgroud(masks, fg, fg_bbox, empty_ymax, empty_xmax, edge
     xmin, ymin, xmax, ymax = fg_bbox
     
     segmentation_roi = masks[ymin:ymax, xmin:xmax]
-    resized_segmentation_roi = cv2.resize(segmentation_roi.astype(np.uint8), dsize=(edge, edge), interpolation=cv2.INTER_AREA)
-
+    if edge * edge > (ymax-ymin) * (xmax-xmin):
+        resized_segmentation_roi = cv2.resize(segmentation_roi.astype(np.uint8), dsize=(edge, edge), interpolation=cv2.INTER_AREA)
+    else:
+        resized_segmentation_roi = cv2.resize(segmentation_roi.astype(np.uint8), dsize=(edge, edge), interpolation=cv2.INTER_CUBIC)
+        
     segmentation_mask = np.zeros((512, 512))
     segmentation_mask[empty_ymax-edge:empty_ymax, empty_xmax-edge:empty_xmax] = resized_segmentation_roi
 
