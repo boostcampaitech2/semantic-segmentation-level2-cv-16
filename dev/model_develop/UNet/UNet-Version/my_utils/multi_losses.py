@@ -15,7 +15,7 @@ category_names = [
     'Background', 'General trash', 'Paper', 'Paper pack', 'Metal',
     'Glass', 'Plastic', 'Styrofoam', 'Plastic bag', 'Battery', 'Clothing'
 ]
-panelty = 1e-2
+panelty = 0.25
 w = [panelty,1,panelty,1,1,1,1,1,panelty,1,1]
 class MultiLosses:
     def __init__(self):
@@ -51,15 +51,15 @@ class MultiLosses:
         cls_branch, prediction = prediction
         self.init_loss_values()
         for decoded_img in prediction:
-            # self._iou_loss_value += self.iou_loss(decoded_img, y.cuda())
-            # self._ms_ssim_loss_value += 1 -1*self.ms_ssim(decoded_img, y.cuda())
+            self._iou_loss_value += self.iou_loss(decoded_img, y.cuda())
+            self._ms_ssim_loss_value += 1 -1*self.ms_ssim(decoded_img, y.cuda())
             if gt is not None:
-                self._fcl_loss_value = self.fcl_loss(decoded_img, gt.cuda())
+                self._fcl_loss_value += self.fcl_loss(decoded_img, gt.cuda())
             else:
                 self._fcl_loss_value += 0
             
-            if not deep_super:
-                break
+            # if not deep_super:
+            #     break
         
         if deep_super:
             self._iou_loss_value /= len(prediction)

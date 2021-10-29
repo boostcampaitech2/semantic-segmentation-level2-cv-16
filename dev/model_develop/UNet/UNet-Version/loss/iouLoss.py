@@ -16,7 +16,7 @@ def _iou(pred, target, size_average = True):
         inv_IoU1 = inv_Iand1/inv_Ior1
 
         #IoU loss is (1-IoU1)
-        IoU = IoU + (1-IoU1) # + inv_IoU1
+        IoU = IoU + inv_IoU1
 
     return IoU/b
 

@@ -26,9 +26,9 @@ class ResUNet_3Plus_DeepSup_CGM(nn.Module):
         #pretrained resnet101
         self.resnet101 = models.resnet101(pretrained=True)
         
-        #params freeze
-        # for param in self.resnet101.parameters():
-            # param.requires_grad = False
+        # params freeze
+        for param in self.resnet101.parameters():
+            param.requires_grad = False
         
         self.flush()
         
