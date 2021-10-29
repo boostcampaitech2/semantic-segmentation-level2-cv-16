@@ -10,7 +10,7 @@ from loss.msssimLoss import MSSSIM
 from my_utils.fcl_loss import FocalLoss
 
 # import pytorch_msssim
-panelty = 1e-5
+panelty = 0.05
 w = [panelty,1,panelty,1,1,1,1,1,panelty,1,1]
 class MultiLosses:
     def __init__(self):
@@ -46,10 +46,10 @@ class MultiLosses:
         cls_branch, prediction = prediction
         self.init_loss_values()
         for decoded_img in prediction:
-            # self._iou_loss_value += self.iou_loss(decoded_img, y.cuda())
-            # self._ms_ssim_loss_value += 1 -1*self.ms_ssim(decoded_img, y.cuda())
+            self._iou_loss_value += self.iou_loss(decoded_img, y.cuda())
+            self._ms_ssim_loss_value += 1 -1*self.ms_ssim(decoded_img, y.cuda())
             if gt is not None:
-                self._fcl_loss_value = self.fcl_loss(decoded_img, gt.cuda())
+                self._fcl_loss_value += self.fcl_loss(decoded_img, gt.cuda())
             else:
                 self._fcl_loss_value += 0
             

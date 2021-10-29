@@ -178,7 +178,7 @@ multi_loss = MultiLosses()
 #     params=model.parameters(), lr=3e-4, #weight_decay=0.001
 # )
 optimizer = torch.optim.Adam( #SGD(
-    model.parameters(), lr = 0
+    model.parameters(), lr = 1e-7
 )
 scheduler = CosineAnnealingWarmUpRestarts(
     optimizer, 
