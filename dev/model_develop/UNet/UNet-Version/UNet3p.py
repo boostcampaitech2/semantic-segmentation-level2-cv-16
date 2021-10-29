@@ -50,11 +50,7 @@ EPOCHS = 1000
 # In[4]:
 
 
-<<<<<<< HEAD
 common_json_path = "/tf/P_stage/P_stage_segmentation/segmentation/input/data/"
-=======
-common_json_path = "/opt/ml/segmentation/input/data/"
->>>>>>> 4dc84be7934de46b7513c92ef5c388d02bb63fa1
 train_json_path = common_json_path + "train.json"
 val_json_path = common_json_path + "val.json"
 test_json_path = common_json_path + "test.json"
