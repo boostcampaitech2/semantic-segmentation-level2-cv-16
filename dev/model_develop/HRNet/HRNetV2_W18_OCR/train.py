@@ -60,7 +60,8 @@ def collate_fn(batch):
 
 def train(data_dir, model_dir, args):
     torch.backends.cudnn.benchmark = True
-    train_path = data_dir + "/train_v1.json"
+    train_path = '/opt/ml/segmentation/input/data/mix_9+77.json'
+    #train_path = data_dir + "/train_v1.json"
     val_path = data_dir + "/valid_v1.json"
     seed_everything(args.seed)
     save_dir = "./" + increment_path(os.path.join(model_dir, args.name))
@@ -74,11 +75,11 @@ def train(data_dir, model_dir, args):
         [
             # A.HorizontalFlip(p=0.5),
             A.Rotate(limit=90),
-            A.RandomResizedCrop(512,512),
+            #A.RandomResizedCrop(512,512),
             #A.Cutout(num_holes=128, p=0.5),
             #A.RandomContrast(p=0.5,limit=(-0.5,0.5)),
             #A.ShiftScaleRotate(p=0.5,scale_limit=(-0.25,2),rotate_limit=90),
-            A.RandomBrightness(p=0.5),
+            #A.RandomBrightness(p=0.5),
             #A.ElasticTransform(p=0.5),
             # A.OneOf([
             #         A.Rotate(limit=90),
@@ -326,7 +327,7 @@ if __name__ == "__main__":
         "--lr", type=float, default=2e-5, help="learning rate (default: 1e-5)"
     )
     parser.add_argument(
-        "--name", default="23-12", help="model save at {SM_MODEL_DIR}/{name}"
+        "--name", default="23-2-3", help="model save at {SM_MODEL_DIR}/{name}"
     )
     parser.add_argument("--log_every", type=int, default=25, help="logging interval")
     parser.add_argument(
@@ -337,7 +338,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = f"{args.name}_HRNetV2_W18_OCR_rot+ransizecrop+ranbrightness"
+    wandb.run.name = f"{args.name}_HRNetV2_W18_OCR_rot_mix_9+77"
     wandb.config.update(args)
     print(args)
 

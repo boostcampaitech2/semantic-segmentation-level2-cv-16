@@ -162,5 +162,5 @@ class DiceCELoss(nn.Module):
         dice_loss = (1 - dice_loss)
 
         ce = F.cross_entropy(inputs, targets, reduction='mean', weight=self.weight)
-        dice_bce = ce * 0.5 + dice_loss * 0.5
+        dice_bce = ce * 0.75 + dice_loss * 0.25
         return dice_bce

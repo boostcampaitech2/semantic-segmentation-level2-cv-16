@@ -46,12 +46,12 @@ def crf(original_image, mask_img):
     d.setUnaryEnergy(U)
 
     # This adds the color-independent term, features are the locations only.
-    d.addPairwiseGaussian(sxy=(3,3), compat=10, kernel=dcrf.DIAG_KERNEL, normalization=dcrf.NORMALIZE_SYMMETRIC)
+    d.addPairwiseGaussian(sxy=(3,3), compat=3, kernel=dcrf.DIAG_KERNEL, normalization=dcrf.NORMALIZE_SYMMETRIC)
 
     # This adds the color-dependent term, i.e. features are (x,y,r,g,b).
-    d.addPairwiseBilateral(sxy=(10,10), srgb=(70,70,70), rgbim=original_image, compat=5)
+    d.addPairwiseBilateral(sxy=(49,49), srgb=(5,5,5), rgbim=original_image, compat=4)
 
-    Q = d.inference(45)
+    Q = d.inference(180)
 
     # Find out the most probable class for each pixel.
     MAP = np.argmax(Q, axis=0)
@@ -65,4 +65,4 @@ for i in tqdm(range(df.shape[0])):
         image_resized = resize(orig_img, (orig_img.shape[0] // 2, orig_img.shape[1] // 2), anti_aliasing=True) 
         crf_output = crf(img_as_ubyte(image_resized),decoded_mask)
         df.loc[i,'PredictionString'] = encode(crf_output)
-df.to_csv('crf_correction.csv',index=False)
+df.to_csv('crf_iter_180_PSPNet_setting.csv',index=False)

@@ -74,7 +74,7 @@ def train(data_dir, model_dir, args):
         [
             # A.HorizontalFlip(p=0.5),
             # A.Rotate(limit=90),
-            A.Rotate(limit=90),
+           # A.Rotate(limit=90),
             A.RandomResizedCrop(512,512),
             # A.OneOf([
             #     # A.RandomCrop (128, 128),
@@ -90,7 +90,7 @@ def train(data_dir, model_dir, args):
             #     A.Resize(1024,1024)
             # ]),
             #A.RandomScale(p=1, scale_limit = [0.5, 2.0]),
-            # A.Resize(512,512),
+            A.Resize(1024,1024),
             ToTensorV2()
         ]
     )
@@ -135,7 +135,7 @@ def train(data_dir, model_dir, args):
     config.learning_rate = args.lr
     wandb.watch(model)
 
-    criterion = DiceLoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-3)
     scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=1600, T_mult=2, eta_max=4e-5, T_up =800, gamma = 0.5)
     class_labels = {
@@ -313,12 +313,12 @@ if __name__ == "__main__":
         "--seed", type=int, default=16, help="random seed (default: 16)"
     )
     parser.add_argument(
-        "--epochs", type=int, default=50, help="number of epochs to train (default: 25)"
+        "--epochs", type=int, default=120, help="number of epochs to train (default: 25)"
     )
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=8,
+        default=3,
         help="input batch size for training (default: 2)",
     )
     # parser.add_argument('--model', type=str, default='Unet3plus', help='model type (default: DeepLabV3Plus)')
@@ -326,7 +326,7 @@ if __name__ == "__main__":
         "--lr", type=float, default=1e-7, help="learning rate (default: 1e-5)"
     )
     parser.add_argument(
-        "--name", default="42_", help="model save at {SM_MODEL_DIR}/{name}"
+        "--name", default="52_", help="model save at {SM_MODEL_DIR}/{name}"
     )
     parser.add_argument("--log_every", type=int, default=25, help="logging interval")
     parser.add_argument(
@@ -337,7 +337,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = f"{args.name}HRNetV2_W64_OCR_DICE_cos_rot+randomresizecrop"
+    wandb.run.name = f"{args.name}HRNetV2_W64_OCR_cos_randomresizecrop_1024upscale"
     wandb.config.update(args)
     print(args)
 
