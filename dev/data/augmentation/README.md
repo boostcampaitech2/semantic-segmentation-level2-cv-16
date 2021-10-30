@@ -14,3 +14,6 @@
   * Module file 추가 - PassionateMix.py
   * Mix_version2.ipynb 업로드
   * transform 관련 함수 추가 예정
+* (10/31) Update
+  * Mix_version3.ipynb 업로드
+  * PassionateMix_v2.py 업로드(저장되는 이미지 파일 이름을 'class_foreground id_background file'로 설정하여 중복 방지.)
