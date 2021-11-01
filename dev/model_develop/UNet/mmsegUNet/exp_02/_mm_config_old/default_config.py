@@ -1,14 +1,14 @@
 # Modification
 
-pretrained_link  = "https://download.openmmlab.com/mmsegmentation"
-pretrained_link += "/v0.5/unet/pspnet_unet_s5-d16_128x128_40k_stare"
-pretrained_link += "/pspnet_unet_s5-d16_128x128_40k_stare_20201227_181818-3c2923c4.pth"
+pretrained_link  = "https://download.openmmlab.com/mmsegmentation/"
+pretrained_link += "v0.5/setr/setr_naive_512x512_160k_b16_ade20k/"
+pretrained_link += "setr_naive_512x512_160k_b16_ade20k_20210619_191258-061f24f5.pth"
 
 
 dataset_type = "CustomDataset"
 data_root = "/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/"
-img_scale = (512, 512)
-crop_size = (128, 128)
+img_scale = (512, 512) # original scale
+crop_size = (512, 512)
 
 classes = [
     "Background",
@@ -38,62 +38,92 @@ palette = [
 ]
 # ==============
 
+
+backbone_norm_cfg = dict(type='LN', eps=1e-06, requires_grad=True)
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 model = dict(
     type='EncoderDecoder',
-    pretrained=pretrained_link,
+    pretrained=pretrained_link,#'pretrain/vit_large_patch16_384.pth',
     backbone=dict(
-        type='UNet',
+        type='VisionTransformer',
+        img_size=img_scale,
+        patch_size=16,
         in_channels=3,
-        base_channels=64,
-        num_stages=5,
-        strides=(1, 1, 1, 1, 1),
-        enc_num_convs=(2, 2, 2, 2, 2),
-        dec_num_convs=(2, 2, 2, 2),
-        downsamples=(True, True, True, True),
-        enc_dilations=(1, 1, 1, 1, 1),
-        dec_dilations=(1, 1, 1, 1),
-        with_cp=False,
-        conv_cfg=None,
-        norm_cfg=norm_cfg,
-        act_cfg=dict(type='ReLU'),
-        upsample_cfg=dict(type='InterpConv'),
-        norm_eval=False),
+        embed_dims=1024,
+        num_layers=24,
+        num_heads=16,
+        out_indices=(9, 14, 19, 23),
+        drop_rate=0.0,
+        norm_cfg=dict(type='LN', eps=1e-06, requires_grad=True),
+        with_cls_token=True,
+        interpolate_mode='bilinear'),
     decode_head=dict(
-        type='PSPHead',
-        in_channels=64,
-        in_index=4,
-        channels=16,
-        pool_scales=(1, 2, 3, 6),
-        dropout_ratio=0.1,
-        num_classes=11,
-        norm_cfg=norm_cfg,
-        align_corners=False,
-        loss_decode=dict(
-            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0, class_weight=[])),
-    auxiliary_head=dict(
-        type='FCNHead',
-        in_channels=128,
+        type='SETRUPHead',
+        in_channels=1024,
+        channels=256,
         in_index=3,
-        channels=64,
-        num_convs=1,
-        concat_input=False,
-        dropout_ratio=0.1,
         num_classes=11,
-        norm_cfg=norm_cfg,
+        dropout_ratio=0,
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        num_convs=1,
+        up_scale=4,
+        kernel_size=1,
         align_corners=False,
         loss_decode=dict(
-            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4, class_weight=[])),
+            type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0)),
+    auxiliary_head=[
+        dict(
+            type='SETRUPHead',
+            in_channels=1024,
+            channels=256,
+            in_index=0,
+            num_classes=11,
+            dropout_ratio=0,
+            norm_cfg=dict(type='SyncBN', requires_grad=True),
+            act_cfg=dict(type='ReLU'),
+            num_convs=2,
+            kernel_size=1,
+            align_corners=False,
+            loss_decode=dict(
+                type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+        dict(
+            type='SETRUPHead',
+            in_channels=1024,
+            channels=256,
+            in_index=1,
+            num_classes=11,
+            dropout_ratio=0,
+            norm_cfg=dict(type='SyncBN', requires_grad=True),
+            act_cfg=dict(type='ReLU'),
+            num_convs=2,
+            kernel_size=1,
+            align_corners=False,
+            loss_decode=dict(
+                type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4)),
+        dict(
+            type='SETRUPHead',
+            in_channels=1024,
+            channels=256,
+            in_index=2,
+            num_classes=11,
+            dropout_ratio=0,
+            norm_cfg=dict(type='SyncBN', requires_grad=True),
+            act_cfg=dict(type='ReLU'),
+            num_convs=2,
+            kernel_size=1,
+            align_corners=False,
+            loss_decode=dict(
+                type='CrossEntropyLoss', use_sigmoid=False, loss_weight=0.4))
+    ],
     train_cfg=dict(),
-    test_cfg=dict(mode='slide', crop_size=(128, 128), stride=(85, 85))
-)
+    test_cfg=dict(mode='slide', crop_size=crop_size, stride=(0, 0)))
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='LoadAnnotations'),
+    dict(type='LoadAnnotations', reduce_zero_label=False),
     dict(type='Resize', img_scale=img_scale, ratio_range=(0.5, 2.0)),
-    dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
+    # dict(type='RandomCrop', crop_size=crop_size, cat_max_ratio=0.75),
     dict(type='RandomFlip', prob=0.5),
     dict(type='PhotoMetricDistortion'),
     dict(
@@ -101,7 +131,7 @@ train_pipeline = [
         mean=[123.675, 116.28, 103.53],
         std=[58.395, 57.12, 57.375],
         to_rgb=True),
-    dict(type='Pad', size=crop_size, pad_val=0, seg_pad_val=255),
+    # dict(type='Pad', size=(512, 512), pad_val=0, seg_pad_val=255),
     dict(type='DefaultFormatBundle'),
     dict(type='Collect', keys=['img', 'gt_semantic_seg'])
 ]
@@ -124,7 +154,7 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=4,
+    samples_per_gpu=2,
     workers_per_gpu=4,
     train=dict(
         classes=classes,
@@ -153,7 +183,7 @@ data = dict(
         pipeline=test_pipeline,
     )
 )
-# yapf:disable
+config_path  = "/tf/P_stage/P_stage_segmentation/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/UNet/mmsegUNet/exp_02/mm_config/"
 log_config = dict(
     by_epoch=False, interval=100,
     hooks=[
@@ -161,22 +191,20 @@ log_config = dict(
         dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
-                project="segmentation",
+                project="mmsegmentation",
                 name="tmp-pspnet_unet",
-                entity="passion-ate",
+                entity="sang-hyun",
             ),
+            config_path=config_path,
         ),
     ],
 )
-# yapf:enable
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-load_from = pretrained_link
+load_from = None
 resume_from = None
 workflow = [('train', 1),('val', 1)]
 cudnn_benchmark = True
-# AdamW optimizer, no weight decay for position embedding & layer norm
-# in backbone
 optimizer = dict(
     # _delete_=True,
     type='AdamW',
@@ -202,10 +230,11 @@ lr_config = dict(
     min_lr=0.0,
     by_epoch=False
 )
-runner = dict(type="EpochBasedRunner", max_epochs=50)
+runner = dict(type="EpochBasedRunner", max_epochs=5000)
 checkpoint_config = dict(max_keep_ckpts=2, by_epoch=True, interval=1)
 evaluation = dict(
     metric=['mDice',"mIoU"], 
     interval=1, by_epoch=True,
     pre_eval=True,
+    save_best="mIoU",
 )

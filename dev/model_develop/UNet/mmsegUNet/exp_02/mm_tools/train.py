@@ -21,8 +21,23 @@ from mmseg.utils import collect_env, get_root_logger
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a segmentor')
-    parser.add_argument('config', help='train config file path')
-    parser.add_argument('--work-dir', help='the dir to save logs and models')
+    parser.add_argument('--config', help='train config file path')
+    parser.add_argument('--work_dir', help='the dir to save logs and models')
+    
+    parser.add_argument('--w_0', type=float)
+    parser.add_argument('--w_1', type=float)
+    parser.add_argument('--w_2', type=float)
+    parser.add_argument('--w_3', type=float)
+    parser.add_argument('--w_4', type=float)
+    parser.add_argument('--w_5', type=float)
+    parser.add_argument('--w_6', type=float)
+    parser.add_argument('--w_7', type=float)
+    parser.add_argument('--w_8', type=float)
+    parser.add_argument('--w_9', type=float)
+    parser.add_argument('--w_10', type=float)
+    
+    
+    
     parser.add_argument(
         '--load-from', help='the checkpoint file to load weights from')
     parser.add_argument(
@@ -65,8 +80,20 @@ def parse_args():
 
 def main():
     args = parse_args()
+    
+    loss_weight = [
+        args.w_0,
+        args.w_1,args.w_2,args.w_3,args.w_4,args.w_5,
+        args.w_6,args.w_7,args.w_8,args.w_9,args.w_10
+    ]
+    s = sum(loss_weight)
+    loss_weight = list(map(lambda x : x/s, loss_weight))
 
     cfg = Config.fromfile(args.config)
+    
+    cfg.model.decode_head.loss_decode.class_weight=loss_weight
+    cfg.model.auxiliary_head.loss_decode.class_weight=loss_weight
+    
     if args.options is not None:
         cfg.merge_from_dict(args.options)
     # set cudnn_benchmark
