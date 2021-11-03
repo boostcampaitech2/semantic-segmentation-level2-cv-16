@@ -28,14 +28,54 @@ def encode(im):
 reading and decoding the submission 
 
 """
-df = pd.read_csv('/opt/ml/segmentation/baseline_code/submission/30_HRNetV2_OCR_W64_23epoch_rotate+randomsizecrop_0.647.csv')
+df = pd.read_csv('/opt/ml/segmentation/baseline_code/submission/ensem_0.794.csv')
 test_path = '/opt/ml/segmentation/input/data/'
 
+'''
+#Deeplab
+    ITER_MAX= 10
+    POS_W= 3
+    POS_XY_STD= 1
+    BI_W= 4
+    BI_XY_STD= 67
+    BI_RGB_STD= 3
+#Deeplab Large
+    ITER_MAX= 10
+    pos_w = 3
+    pos_xy_std = 3
+    bi_w = 4
+    bi_xy_std = 121
+    bi_rgb_std = 5
+#PSPNET
+    POS_W = 3
+    POS_XY_STD = 3
+    Bi_W = 4
+    Bi_XY_STD = 49
+    Bi_RGB_STD = 5
+#PydenseCRF
+    POS_W = 3
+    POS_XY_STD = 3
+    Bi_W = 10
+    Bi_XY_STD = 80
+    Bi_RGB_STD = 13
+https://github.com/lucasb-eyer/pydensecrf
+d.addPairwiseGaussian(sxy=3, compat=3)
+d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=im, compat=10)
+
+'''
+
+
 def crf(original_image, mask_img):
-    
+    MAX_ITER = 30
+    POS_W = 3
+    POS_XY_STD = 3
+    Bi_W = 4
+    Bi_XY_STD = 49
+    Bi_RGB_STD = 5
     labels = mask_img.flatten()
 
     n_labels = 11
+    img = np.ascontiguousarray(original_image)
     
     #Setting up the CRF model
     
@@ -46,12 +86,13 @@ def crf(original_image, mask_img):
     d.setUnaryEnergy(U)
 
     # This adds the color-independent term, features are the locations only.
-    d.addPairwiseGaussian(sxy=(3,3), compat=3, kernel=dcrf.DIAG_KERNEL, normalization=dcrf.NORMALIZE_SYMMETRIC)
+    d.addPairwiseGaussian(sxy=POS_XY_STD, compat=POS_W)
 
     # This adds the color-dependent term, i.e. features are (x,y,r,g,b).
-    d.addPairwiseBilateral(sxy=(49,49), srgb=(5,5,5), rgbim=original_image, compat=4)
+    d.addPairwiseBilateral(sxy=Bi_XY_STD, srgb=Bi_RGB_STD, rgbim=img, compat=Bi_W)
 
-    Q = d.inference(180)
+    Q = d.inference(MAX_ITER)
+
 
     # Find out the most probable class for each pixel.
     MAP = np.argmax(Q, axis=0)
@@ -65,4 +106,4 @@ for i in tqdm(range(df.shape[0])):
         image_resized = resize(orig_img, (orig_img.shape[0] // 2, orig_img.shape[1] // 2), anti_aliasing=True) 
         crf_output = crf(img_as_ubyte(image_resized),decoded_mask)
         df.loc[i,'PredictionString'] = encode(crf_output)
-df.to_csv('crf_iter_180_PSPNet_setting.csv',index=False)
+df.to_csv('ensem_crf_iter_30_PSP_setting.csv',index=False)

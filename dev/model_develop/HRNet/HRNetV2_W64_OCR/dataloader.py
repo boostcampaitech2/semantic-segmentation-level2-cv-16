@@ -9,6 +9,7 @@ import os
 from torch.utils.data import Dataset, DataLoader
 import torch
 import json
+import glob
 
 
 dataset_path = "/opt/ml/segmentation/input/data"
@@ -120,3 +121,57 @@ class CustomDataLoader(Dataset):
     def __len__(self) -> int:
         # 전체 dataset의 size를 return
         return len(self.coco.getImgIds())
+
+class PseudoTrainset(Dataset):
+    """COCO format"""
+    def __init__(self, data_dir, transform = None):
+        super().__init__()
+        self.dataset_path = '/opt/ml/segmentation/input/data/'  
+        self.transform = transform
+        self.coco = COCO(data_dir)
+        self.category_names = ['Backgroud', 'General trash', 'Paper', 'Paper pack', 'Metal', 'Glass', 'Plastic', 'Styrofoam', 'Plastic bag', 'Battery', 'Clothing']
+        
+        self.pseudo_imgs = np.load(self.dataset_path+'img_name.npy')
+        self.pseudo_masks = sorted(glob.glob(self.dataset_path+ 'mask/*.npy'))
+        
+    def __getitem__(self, index: int):
+        
+        ### Train data ###
+        if (index < len(self.coco.getImgIds())):
+            image_id = self.coco.getImgIds(imgIds=index)
+            image_infos = self.coco.loadImgs(image_id)[0]
+
+            images = cv2.imread(self.dataset_path+image_infos['file_name'])
+            images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
+            images /= 255.0
+            ann_ids = self.coco.getAnnIds(imgIds=image_infos['id'])
+            anns = self.coco.loadAnns(ann_ids)
+            cat_ids = self.coco.getCatIds()
+            cats = self.coco.loadCats(cat_ids)
+            
+            ############### test의 마스크 생성 
+            masks = np.zeros((image_infos["height"], image_infos["width"]))
+            for i in range(len(anns)):
+                className = get_classname(anns[i]['category_id'], cats)
+                pixel_value = self.category_names.index(className)
+                masks = np.maximum(self.coco.annToMask(anns[i])*pixel_value, masks)
+
+        ############ Pseudo data 를 불러옴
+        else:
+            index -= len(self.coco.getImgIds())
+            images = cv2.imread(self.dataset_path+self.pseudo_imgs[index])
+            images = cv2.cvtColor(images, cv2.COLOR_BGR2RGB).astype(np.float32)
+            images /= 255.0
+            masks = np.load(self.pseudo_masks[index])
+            
+        ################# transform 과정
+        masks = masks.astype(np.float32)
+        if self.transform is not None:
+            transformed = self.transform(image=images, mask=masks)
+            images = transformed["image"]
+            masks = transformed["mask"]
+            
+        return images, masks
+    
+    def __len__(self):
+        return len(self.coco.getImgIds())+len(self.pseudo_imgs)

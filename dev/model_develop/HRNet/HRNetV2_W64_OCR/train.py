@@ -52,15 +52,11 @@ def increment_path(path, exist_ok=False):
         i = [int(m.groups()[0]) for m in matches if m]
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
-
-
 def collate_fn(batch):
     return tuple(zip(*batch))
-
-
 def train(data_dir, model_dir, args):
     torch.backends.cudnn.benchmark = True
-    train_path = data_dir + "/train_v1.json"
+    train_path = data_dir + "/mix_9+341_10+264_3+335_4+260_5+161.json"
     val_path = data_dir + "/valid_v1.json"
     seed_everything(args.seed)
     save_dir = "./" + increment_path(os.path.join(model_dir, args.name))
@@ -74,7 +70,7 @@ def train(data_dir, model_dir, args):
         [
             # A.HorizontalFlip(p=0.5),
             # A.Rotate(limit=90),
-           # A.Rotate(limit=90),
+            A.Rotate(limit=90),
             A.RandomResizedCrop(512,512),
             # A.OneOf([
             #     # A.RandomCrop (128, 128),
@@ -90,7 +86,7 @@ def train(data_dir, model_dir, args):
             #     A.Resize(1024,1024)
             # ]),
             #A.RandomScale(p=1, scale_limit = [0.5, 2.0]),
-            A.Resize(1024,1024),
+            #A.Resize(1024,1024),
             ToTensorV2()
         ]
     )
@@ -137,7 +133,7 @@ def train(data_dir, model_dir, args):
 
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-3)
-    scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=1600, T_mult=2, eta_max=4e-5, T_up =800, gamma = 0.5)
+    #scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=1600, T_mult=2, eta_max=4e-5, T_up =800, gamma = 0.5)
     class_labels = {
         0: "Backgroud",
         1: "General trash",
@@ -162,7 +158,7 @@ def train(data_dir, model_dir, args):
         loss_value = 0
         hist = np.zeros((11, 11))
         for idx, (images, masks, _) in enumerate(tqdm(train_loader)):
-            wandb.log({"learning rate" : scheduler.get_lr()[0]})
+            #wandb.log({"learning rate" : scheduler.get_lr()[0]})
             images = torch.stack(images)  # (batch, channel, height, width)
             masks = torch.stack(masks).long()
             images, masks = images.to(device), masks.to(device)
@@ -184,7 +180,7 @@ def train(data_dir, model_dir, args):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            scheduler.step()
+            #scheduler.step()
 
             outputs = torch.argmax(outputs, dim=1).detach().cpu().numpy()
             masks = masks.detach().cpu().numpy()
@@ -318,15 +314,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=3,
+        default=12,
         help="input batch size for training (default: 2)",
     )
     # parser.add_argument('--model', type=str, default='Unet3plus', help='model type (default: DeepLabV3Plus)')
     parser.add_argument(
-        "--lr", type=float, default=1e-7, help="learning rate (default: 1e-5)"
+        "--lr", type=float, default=1e-5, help="learning rate (default: 1e-5)"
     )
     parser.add_argument(
-        "--name", default="52_", help="model save at {SM_MODEL_DIR}/{name}"
+        "--name", default="54-3_", help="model save at {SM_MODEL_DIR}/{name}"
     )
     parser.add_argument("--log_every", type=int, default=25, help="logging interval")
     parser.add_argument(
@@ -335,9 +331,8 @@ if __name__ == "__main__":
 
     # Container environment
     args = parser.parse_args()
-
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = f"{args.name}HRNetV2_W64_OCR_cos_randomresizecrop_1024upscale"
+    wandb.run.name = f"{args.name}HRNetV2_W64_OCR_no-scheduler_rot+randomresizecrop_3,9,10,4,5mix"
     wandb.config.update(args)
     print(args)
 
