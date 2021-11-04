@@ -9,6 +9,9 @@
 - mmsegmentation 설치
 `pip install mmsegmentation==0.11.0`
 
+- timm 설치
+`pip install scipy timm==0.3.2`
+
 # Train
 `bash tools/dist_train.sh {config file} {number of GPU} --work-dir {work dir name} --seed {seed}`
 
