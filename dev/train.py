@@ -26,6 +26,7 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 import wandb
 
+
 import math
 import torch.optim.lr_scheduler as lr_scheduler
 
@@ -37,7 +38,8 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
-    
+
+
 def increment_path(path, exist_ok=False):
     path = Path(path)
     if (path.exists() and exist_ok) or (not path.exists()):
@@ -49,8 +51,10 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
+
 def collate_fn(batch):
     return tuple(zip(*batch))
+
 
 def train(data_dir, model_dir, args):
     torch.backends.cudnn.benchmark = True
@@ -78,8 +82,8 @@ def train(data_dir, model_dir, args):
     val_transform = A.Compose([ToTensorV2()])
 
     # data loader
-    train_dataset = PseudoTrainset(
-        data_dir=train_path, transform=train_transform
+    train_dataset = CustomDataLoader(
+        data_dir=train_path, mode="train", transform=train_transform
     )
     val_dataset = CustomDataLoader(
         data_dir=val_path, mode="val", transform=val_transform
@@ -105,6 +109,8 @@ def train(data_dir, model_dir, args):
         pin_memory=True,
     )
 
+    # -- model
+    #model = myModel("UnetPlusPlus","timm-efficientnet-b4")
     model = myModel("DeepLabV3Plus","timm-efficientnet-b4")
     model = model.to(device)
     wandb.watch(model)
@@ -134,7 +140,7 @@ def train(data_dir, model_dir, args):
         # train loop
         model.train()
         loss_value = 0
-        for idx, (images, masks) in enumerate(train_loader):
+        for idx, (images, masks, _) in enumerate(train_loader):
             loss = 0
             images = torch.stack(images)  # (batch, channel, height, width)
             masks = torch.stack(masks).long()
