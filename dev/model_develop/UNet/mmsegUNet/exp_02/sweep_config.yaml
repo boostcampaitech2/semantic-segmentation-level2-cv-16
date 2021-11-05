@@ -53,7 +53,9 @@ parameters:
     distribution: uniform
     min: 0
     max: 1
-    
+early_terminate:
+  type: hyperband
+  min_iter: 3    
 program:
   ./mm_tools/train.py
   
