@@ -28,7 +28,7 @@ def encode(im):
 reading and decoding the submission 
 
 """
-df = pd.read_csv('/opt/ml/segmentation/baseline_code/submission/ensem_0.794.csv')
+df = pd.read_csv('/opt/ml/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/HRNet/Hard_0.796+44_0.790+51_0.772+Unet++_0.742+HRNet.csv')
 test_path = '/opt/ml/segmentation/input/data/'
 
 '''
@@ -63,15 +63,15 @@ d.addPairwiseGaussian(sxy=3, compat=3)
 d.addPairwiseBilateral(sxy=80, srgb=13, rgbim=im, compat=10)
 
 '''
-
+MAX_ITER = 50
+POS_W = 3
+POS_XY_STD = 3
+Bi_W = 4
+Bi_XY_STD = 49
+Bi_RGB_STD = 5
 
 def crf(original_image, mask_img):
-    MAX_ITER = 30
-    POS_W = 3
-    POS_XY_STD = 3
-    Bi_W = 4
-    Bi_XY_STD = 49
-    Bi_RGB_STD = 5
+
     labels = mask_img.flatten()
 
     n_labels = 11
@@ -106,4 +106,4 @@ for i in tqdm(range(df.shape[0])):
         image_resized = resize(orig_img, (orig_img.shape[0] // 2, orig_img.shape[1] // 2), anti_aliasing=True) 
         crf_output = crf(img_as_ubyte(image_resized),decoded_mask)
         df.loc[i,'PredictionString'] = encode(crf_output)
-df.to_csv('ensem_crf_iter_30_PSP_setting.csv',index=False)
+df.to_csv(f'Hard_voting_five_models_{MAX_ITER}_({POS_W}_{POS_XY_STD}_{Bi_W}_{Bi_XY_STD}_{Bi_RGB_STD}).csv',index=False)
