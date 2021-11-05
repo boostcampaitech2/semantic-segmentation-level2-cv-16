@@ -1,6 +1,6 @@
 pretrained_link = 'https://download.openmmlab.com/mmsegmentation/v0.5/unet/pspnet_unet_s5-d16_128x128_40k_stare/pspnet_unet_s5-d16_128x128_40k_stare_20201227_181818-3c2923c4.pth'
 dataset_type = 'CustomDataset'
-data_root = '/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/'
+data_root = '/opt/ml/segmentation/input/data/mmseg/'
 img_scale = (512, 512)
 crop_size = (128, 128)
 classes = [
@@ -47,10 +47,10 @@ model = dict(
             use_sigmoid=False,
             loss_weight=1.0,
             class_weight=[
-                0.15883475970699693, 0.04047413428252395, 0.15196736746129488,
-                0.08236514253147932, 0.028758954291313286,
-                0.024963064086909018, 0.11316833399470536, 0.16062000425286838,
-                0.05978389935665862, 0.1597206596484611, 0.01934368038678913
+                0.12569045882504457, 0.06572725397779974, 0.1487976613352835,
+                0.07169089856307555, 0.02525688934502939, 0.057960431266748214,
+                0.12707596248744216, 0.07968132847344185, 0.10410474920439847,
+                0.14818898403559955, 0.04582538248613699
             ])),
     auxiliary_head=dict(
         type='FCNHead',
@@ -68,10 +68,10 @@ model = dict(
             use_sigmoid=False,
             loss_weight=0.4,
             class_weight=[
-                0.15883475970699693, 0.04047413428252395, 0.15196736746129488,
-                0.08236514253147932, 0.028758954291313286,
-                0.024963064086909018, 0.11316833399470536, 0.16062000425286838,
-                0.05978389935665862, 0.1597206596484611, 0.01934368038678913
+                0.12569045882504457, 0.06572725397779974, 0.1487976613352835,
+                0.07169089856307555, 0.02525688934502939, 0.057960431266748214,
+                0.12707596248744216, 0.07968132847344185, 0.10410474920439847,
+                0.14818898403559955, 0.04582538248613699
             ])),
     train_cfg=dict(),
     test_cfg=dict(mode='slide', crop_size=(128, 128), stride=(85, 85)))
@@ -125,10 +125,8 @@ data = dict(
                  [192, 192, 128], [64, 64, 128], [128, 0, 192]],
         type='CustomDataset',
         reduce_zero_label=False,
-        img_dir=
-        '/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/images/training',
-        ann_dir=
-        '/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/annotations/training',
+        img_dir='/opt/ml/segmentation/input/data/mmseg/images/training',
+        ann_dir='/opt/ml/segmentation/input/data/mmseg/annotations/training',
         pipeline=[
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations'),
@@ -156,10 +154,8 @@ data = dict(
                  [192, 192, 128], [64, 64, 128], [128, 0, 192]],
         type='CustomDataset',
         reduce_zero_label=False,
-        img_dir=
-        '/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/images/validation',
-        ann_dir=
-        '/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/annotations/validation',
+        img_dir='/opt/ml/segmentation/input/data/mmseg/images/validation',
+        ann_dir='/opt/ml/segmentation/input/data/mmseg/annotations/validation',
         pipeline=[
             dict(type='LoadImageFromFile'),
             dict(
@@ -189,8 +185,7 @@ data = dict(
                  [192, 192, 128], [64, 64, 128], [128, 0, 192]],
         type='CustomDataset',
         reduce_zero_label=False,
-        img_dir=
-        '/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/images/test',
+        img_dir='/opt/ml/segmentation/input/data/mmseg/images/test',
         pipeline=[
             dict(type='LoadImageFromFile'),
             dict(

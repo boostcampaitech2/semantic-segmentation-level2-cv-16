@@ -39,7 +39,7 @@ model = dict(
         channels=16,
         pool_scales=(1, 2, 3, 6),
         dropout_ratio=0.1,
-        num_classes=2,
+        num_classes=11,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
         align_corners=False,
         loss_decode=dict(
@@ -52,7 +52,7 @@ model = dict(
         num_convs=1,
         concat_input=False,
         dropout_ratio=0.1,
-        num_classes=2,
+        num_classes=11,
         norm_cfg=dict(type='SyncBN', requires_grad=True),
         align_corners=False,
         loss_decode=dict(
@@ -188,19 +188,21 @@ data = dict(
                     dict(type='Collect', keys=['img'])
                 ])
         ]))
+config_path = '/opt/ml/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/UNet/mmsegUNet/exp_00/mm_config/'
 log_config = dict(
     by_epoch=False,
     interval=100,
     hooks=[
-        dict(type='TextLoggerHook', by_epoch=False, interval=100),
+        dict(type='TextLoggerHook'),
         dict(
             type='WandbLoggerHook',
             init_kwargs=dict(
-                project='segmentation',
+                project='mmsegmentation',
                 name='tmp-pspnet_unet',
-                entity='passion-ate'),
-            by_epoch=False,
-            interval=100)
+                entity='sang-hyun'),
+            config_path=
+            '/opt/ml/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/UNet/mmsegUNet/exp_00/mm_config/'
+        )
     ])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
@@ -227,9 +229,13 @@ lr_config = dict(
     power=1.0,
     min_lr=0.0,
     by_epoch=False)
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+runner = dict(type='EpochBasedRunner', max_epochs=5000)
 checkpoint_config = dict(max_keep_ckpts=2, by_epoch=True, interval=1)
 evaluation = dict(
-    metric=['mDice', 'mIoU'], interval=1, by_epoch=True, pre_eval=True)
+    metric=['mDice', 'mIoU'],
+    interval=1,
+    by_epoch=True,
+    pre_eval=True,
+    save_best='mIoU')
 work_dir = './work_dir/'
 gpu_ids = range(0, 1)

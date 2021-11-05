@@ -66,7 +66,7 @@ model = dict(
         channels=16,
         pool_scales=(1, 2, 3, 6),
         dropout_ratio=0.1,
-        num_classes=2,
+        num_classes=11,
         norm_cfg=norm_cfg,
         align_corners=False,
         loss_decode=dict(
@@ -79,7 +79,7 @@ model = dict(
         num_convs=1,
         concat_input=False,
         dropout_ratio=0.1,
-        num_classes=2,
+        num_classes=11,
         norm_cfg=norm_cfg,
         align_corners=False,
         loss_decode=dict(
@@ -154,6 +154,9 @@ data = dict(
     )
 )
 # yapf:disable
+config_path  = "/opt/ml/segmentation/"
+config_path += "semantic-segmentation-level2-cv-16/dev/"
+config_path += "model_develop/UNet/mmsegUNet/exp_00/mm_config/"
 log_config = dict(
     by_epoch=False, interval=100,
     hooks=[
@@ -161,10 +164,11 @@ log_config = dict(
         dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
-                project="segmentation",
+                project="mmsegmentation",
                 name="tmp-pspnet_unet",
-                entity="passion-ate",
+                entity="sang-hyun",
             ),
+            config_path=config_path,
         ),
     ],
 )
@@ -202,10 +206,11 @@ lr_config = dict(
     min_lr=0.0,
     by_epoch=False
 )
-runner = dict(type="EpochBasedRunner", max_epochs=50)
+runner = dict(type="EpochBasedRunner", max_epochs=5000)
 checkpoint_config = dict(max_keep_ckpts=2, by_epoch=True, interval=1)
 evaluation = dict(
     metric=['mDice',"mIoU"], 
     interval=1, by_epoch=True,
     pre_eval=True,
+    save_best="mIoU",
 )

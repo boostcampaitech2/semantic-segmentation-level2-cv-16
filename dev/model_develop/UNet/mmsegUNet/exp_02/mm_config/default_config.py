@@ -6,7 +6,7 @@ pretrained_link += "/pspnet_unet_s5-d16_128x128_40k_stare_20201227_181818-3c2923
 
 
 dataset_type = "CustomDataset"
-data_root = "/tf/P_stage/P_stage_segmentation/segmentation/input/data/mmseg/"
+data_root = "/opt/ml/segmentation/input/data/mmseg/"
 img_scale = (512, 512)
 crop_size = (128, 128)
 
