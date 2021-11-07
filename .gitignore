@@ -4,14 +4,9 @@ __pycache__
 
 
 /**/__pycache__/
-<<<<<<< HEAD
-=======
-/**/wandb/
->>>>>>> seungwoo
 /**/._ipynb_checkpoint/
 
 *.csv
-*.txt
 *.log
 *.out
 *.pth
