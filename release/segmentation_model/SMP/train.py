@@ -251,7 +251,7 @@ if __name__ == "__main__":
         "--seed", type=int, default=42, help="random seed (default: 42)"
     )
     parser.add_argument(
-        "--epochs", type=int, default=25, help="number of epochs to train (default: 28)"
+        "--epochs", type=int, default=25, help="number of epochs to train (default: 25)"
     )
     parser.add_argument(
         "--batch_size",
