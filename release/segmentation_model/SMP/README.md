@@ -1,10 +1,16 @@
+# Usage
 ## Setting
 - requirements.txt 설치 
   - `pip install -r requirements.txt`
 
 ## Train
-- 실행 방법
-  - `python train.py --seed 2021 --epochs 100 --batch_size 8`
+- `python train.py --seed 2021 --epochs 100 --batch_size 8`
+  - `--seed` : random seed (default: 42)
+  - `--epochs` : number of epochs to train (default: 25)
+  - `--batch_size` : input batch size for training (default: 8)
+  - `--lr` : learning rate (default: 5e-6)
+  - `--name` : model save at {SM_MODEL_DIR}/{name}
+  - `--log_every` : logging interval (default: 25)
 
 - smp_model.py에 있는 myModel class를 통해 model 관리 -> 원하는 SMP model의 encoder, backbone, weight 등을 관리 가능
 
