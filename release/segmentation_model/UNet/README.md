@@ -23,4 +23,4 @@ UNet-mmseg 에 위치한 코드들을 통해서 mmsegmentation의 다양한 back
 
 ## UNet3+
 
-여러 버전의 UNet을 미리 학습된 파라미터 없이 처음부터 학습할 수 있습니다. `pip install -r UNet3p.txt` 를 이용해 환경을 맞춰줍니다. 그리고 `UNet3+/UNet/models/` 에 위치한 모델들을 import하여 `python UNet3+/UNet/UNet3p.py/` 를 통해서 학습이 가능합니다.
+여러 버전의 UNet을 미리 학습된 파라미터 없이 처음부터 학습할 수 있습니다. `pip install -r UNet3p.txt` 를 이용해 환경을 맞춰줍니다. 그리고 `UNet3+/UNet/models/` 에 위치한 모델들을 import하여 `python UNet3+/UNet/UNet3p.py/` 를 통해서 학습이 가능합니다. ResUNet 을 제외한 다른 코드들의 출처는 `https://github.com/ZJUGiveLab/UNet-Version` 이며 ResUNet3+의 경우 pytorch의 pretrained ResNet101 을 encoder로 하는 UNet3+ 구조의 모델입니다.
