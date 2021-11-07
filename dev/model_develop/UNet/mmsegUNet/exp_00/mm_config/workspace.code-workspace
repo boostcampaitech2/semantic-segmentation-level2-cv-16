@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../../../.."
+		},
+		{
+			"path": "../../../../../../../../../conda/envs/mmsegUNet/lib/python3.8/site-packages"
+		}
+	],
+	"settings": {}
+}
