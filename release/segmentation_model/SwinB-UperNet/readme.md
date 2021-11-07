@@ -41,6 +41,24 @@ python tools/model_converters/swin2mmseg.py ${PRETRAIN_PATH} ${STORE_PATH}
 |config|model|
 |------|-----|
 |10_SwinB-UperNet|[pretrained](https://download.openmmlab.com/mmsegmentation/v0.5/swin/upernet_swin_base_patch4_window12_512x512_160k_ade20k_pretrain_384x384_22K/upernet_swin_base_patch4_window12_512x512_160k_ade20k_pretrain_384x384_22K_20210531_125459-429057bf.pth)|
-|12_SwinB-UperNet|[pretrained](https://download.openmmlab.com/mmsegmentation/v0.5/swin/upernet_swin_base_patch4_window12_512x512_160k_ade20k_pretrain_384x384_22K/upernet_swin_base_patch4_window12_512x512_160k_ade20k_pretrain_384x384_22K_20210531_125459-429057bf.pth)|
+|48_SwinL-UperNet|[pretrained](https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window12_384_22k.pth)|
+
+## Train
+Transfer learning을 진행하기 위해서는 각 폴더 config에 있는 `폴더번호.py`파일에 `converted pretrained model path`를 지정해줘야 합니다.
+```python
+    model = dict(
+        #pretrained="path_to_pretrained_path",
+        backbone=dict(
+            ...
+        )
+    )
+```
+위 부분을 지정해주시면 됩니다.
+
+모델 훈련은 아래의 script를 따라 진행하시면 됩니다.
+```shell
+    tools/train.py ${CONFIG_PATH}
+```
+`CONFIG_PATH`는 모델 폴더 안에 있는 `모델번호.py`의 경로를 지정해주시면 됩니다.
 
 
