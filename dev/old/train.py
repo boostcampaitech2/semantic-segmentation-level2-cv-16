@@ -12,9 +12,9 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import segmentation_models_pytorch as smp
 from adamp import AdamP
-from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR
+import yaml
 
-from model import *
+from model import get_seg_model
 from dataloader import *
 from utils import *
 
@@ -23,11 +23,13 @@ import torch
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 import wandb
+import torch.nn as nn
+import torch.nn.functional as F
 
 # from loss import FocalLoss
 import math
-import torch.optim.lr_scheduler as lr_scheduler
 import segmentation_models_pytorch as smp
+from tqdm import tqdm
 
 
 def seed_everything(seed):
@@ -58,8 +60,8 @@ def collate_fn(batch):
 
 def train(data_dir, model_dir, args):
     torch.backends.cudnn.benchmark = True
-    train_path = data_dir + "/train.json"
-    val_path = data_dir + "/val.json"
+    train_path = data_dir + "/train_v1.json"
+    val_path = data_dir + "/valid_v1.json"
     seed_everything(args.seed)
     save_dir = "./" + increment_path(os.path.join(model_dir, args.name))
     os.makedirs(save_dir)
@@ -70,9 +72,23 @@ def train(data_dir, model_dir, args):
     # -- augmentation
     train_transform = A.Compose(
         [
-            A.RandomResizedCrop(512, 512, (0.75, 1.0), p=0.5),
             A.HorizontalFlip(p=0.5),
-            ToTensorV2(),
+            # A.OneOf([
+            #     # A.RandomCrop (128, 128),
+            #     # A.RandomCrop (256, 256),
+            #     A.Rotate(limit=90)
+            # ]),
+            # A.RandomCrop (256, 256),
+            # A.OneOf([
+            #     A.Resize(256,256),
+            #     A.Resize(384,384),
+            #     A.Resize(512,512),
+            #     A.Resize(768,768),
+            #     A.Resize(1024,1024)
+            # ]),
+            #A.RandomScale(p=1, scale_limit = [0.5, 2.0]),
+            # A.Resize(512,512),
+            ToTensorV2()
         ]
     )
 
@@ -107,14 +123,19 @@ def train(data_dir, model_dir, args):
     )
 
     # -- model
-    model = UNet(n_classes=11)
+    config_path = '/opt/ml/segmentation/semantic-segmentation-level2-cv-16/dev/model_develop/HRNet/configs/hrnet_seg_ocr.yaml'
+    with open(config_path) as f:
+        cfg = yaml.load(f)
+    model = get_seg_model(cfg)
     model = model.to(device)
+    config = wandb.config
+    config.learning_rate = args.lr
     wandb.watch(model)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = AdamP(model.parameters(), lr=args.lr, weight_decay=1e-3)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-3)
 
-    scheduler = CosineAnnealingLR(optimizer, T_max=10, eta_min=1e-4)
+    #scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=1600, T_mult=1, eta_max=0.002, T_up =800, gamma = 0.5)
     class_labels = {
         0: "Backgroud",
         1: "General trash",
@@ -128,6 +149,8 @@ def train(data_dir, model_dir, args):
         9: "Battery",
         10: "Clothing",
     }
+    n_class = 11
+
     # -- logging
     best_mIoU = 0
     best_val_loss = 99999999
@@ -135,27 +158,72 @@ def train(data_dir, model_dir, args):
         # train loop
         model.train()
         loss_value = 0
-        for idx, (images, masks, _) in enumerate(train_loader):
+        hist = np.zeros((11, 11))
+        for idx, (images, masks, _) in enumerate(tqdm(train_loader)):
+            #wandb.log({"learning rate" : optimizer.get_lr()[0]})
             images = torch.stack(images)  # (batch, channel, height, width)
             masks = torch.stack(masks).long()
             images, masks = images.to(device), masks.to(device)
 
             outputs = model(images)
-            optimizer.zero_grad()
+            for i in range(len(outputs)):
+                output = outputs[i]
+                ph, pw = output.size(2), output.size(3)
+                h, w = masks.size(1), masks.size(2)
+                if ph != h or pw != w:
+                    output = F.interpolate(input=output, size=(
+                        h, w), mode='bilinear', align_corners=True)
+                outputs[i] = output
 
-            loss = criterion(outputs, masks)
+            loss = 0
+            for i in range(len(outputs)):
+                loss += criterion(outputs[i], masks)
+            outputs = outputs[0]
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            #scheduler.step()
 
+            outputs = torch.argmax(outputs, dim=1).detach().cpu().numpy()
+            masks = masks.detach().cpu().numpy()
+            hist = add_hist(hist, masks, outputs, n_class=n_class)
+            acc, acc_cls, mIoU, fwavacc, IoU = label_accuracy_score(hist)
             loss_value += loss.item()
 
             if (idx + 1) % 25 == 0:
                 train_loss = loss_value / 25
                 print(
-                    f"Epoch [{epoch+1}/{args.epochs}], Step [{idx+1}/{len(train_loader)}], Loss: {round(loss.item(),4)}"
+                    f"Epoch [{epoch}/{args.epochs}], Step [{idx+1}/{len(train_loader)}], Loss: {round(loss.item(),4)}, mIoU: {round(mIoU,4)}"
                 )
-                wandb.log({"train/loss": train_loss})
+                wandb.log({"train/mIoU" : round(mIoU,4), "train/loss": train_loss})
                 loss_value = 0
+                wandb.log(
+                    {
+                        "train_image": wandb.Image(
+                            images[0, :, :, :],
+                            masks={
+                                "predictions": {
+                                    "mask_data": outputs[0, :, :],
+                                    "class_labels": class_labels,
+                                },
+                                "ground_truth": {
+                                    "mask_data": masks[0, :, :]
+                                    .detach()
+                                    .cpu()
+                                    .numpy(),
+                                    "class_labels": class_labels,
+                                },
+                            },
+                        )
+                    }
+                )
+
+
+
+
+
+
+
         hist = np.zeros((11, 11))
 
         ############validation##############
@@ -163,15 +231,28 @@ def train(data_dir, model_dir, args):
         with torch.no_grad():
             cnt = 0
             total_loss = 0
+            print(f'Start validation #{epoch}')
             print("Calculating validation results...")
             model.eval()
-            for idx, (images, masks, _) in enumerate(val_loader):
+            for idx, (images, masks, _) in enumerate(tqdm(val_loader)):
                 images = torch.stack(images)  # (batch, channel, height, width)
                 masks = torch.stack(masks).long()
                 images, masks = images.to(device), masks.to(device)
 
                 outputs = model(images)
-                loss = criterion(outputs, masks)
+                for i in range(len(outputs)):
+                    output = outputs[i]
+                    ph, pw = output.size(2), output.size(3)
+                    h, w = masks.size(1), masks.size(2)
+                    if ph != h or pw != w:
+                        output = F.interpolate(input=output, size=(
+                            h, w), mode='bilinear', align_corners=True)
+                    outputs[i] = output
+
+                loss = 0
+                for i in range(len(outputs)):
+                    loss += criterion(outputs[i], masks)
+                outputs = outputs[0]
                 total_loss += loss
                 cnt += 1
 
@@ -181,7 +262,7 @@ def train(data_dir, model_dir, args):
                 if idx % args.vis_every == 0:
                     wandb.log(
                         {
-                            "visualize": wandb.Image(
+                            "valid_image": wandb.Image(
                                 images[0, :, :, :],
                                 masks={
                                     "predictions": {
@@ -219,16 +300,15 @@ def train(data_dir, model_dir, args):
             wandb.log(log)
             if mIoU > best_mIoU:
                 print(
-                    f"New best model for val mIoU : {mIoU:4.2%}! saving the best model.."
+                    f"New best model for val mIoU : {round(mIoU,4)}! saving the best model.."
                 )
-                torch.save(model.state_dict(), f"{save_dir}/best.pth")
+                torch.save(model.state_dict(), f"{save_dir}/HRNetV2_W64_OCR_{epoch}_{mIoU}.pth")
                 best_mIoU = mIoU
             torch.save(model.state_dict(), f"{save_dir}/last.pth")
             print(
                 f"Validation #{epoch}  Average Loss: {round(avrg_loss.item(), 4)}, Accuracy : {round(acc, 4)}, mIoU: {round(mIoU, 4)}"
             )
             print(f"IoU by class : {IoU_by_class}")
-        scheduler.step()
         # val loop
 
 
@@ -236,20 +316,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     # Data and model checkpoints directories
     parser.add_argument(
-        "--seed", type=int, default=42, help="random seed (default: 42)"
+        "--seed", type=int, default=16, help="random seed (default: 16)"
     )
     parser.add_argument(
-        "--epochs", type=int, default=25, help="number of epochs to train (default: 28)"
+        "--epochs", type=int, default=20, help="number of epochs to train (default: 25)"
     )
     parser.add_argument(
         "--batch_size",
         type=int,
         default=8,
-        help="input batch size for training (default: 8)",
+        help="input batch size for training (default: 2)",
     )
     # parser.add_argument('--model', type=str, default='Unet3plus', help='model type (default: DeepLabV3Plus)')
     parser.add_argument(
-        "--lr", type=float, default=1e-5, help="learning rate (default: 5e-6)"
+        "--lr", type=float, default=1e-5, help="learning rate (default: 1e-5)"
     )
     parser.add_argument(
         "--name", default="exp", help="model save at {SM_MODEL_DIR}/{name}"
@@ -263,7 +343,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     wandb.init(project="segmentation", entity="passion-ate")
-    wandb.run.name = "module test"
+    wandb.run.name = "test2_HRNetV2_default_train_all_revise"
     wandb.config.update(args)
     print(args)
 

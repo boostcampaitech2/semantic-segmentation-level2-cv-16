@@ -11,8 +11,8 @@ import torch
 import json
 
 
-dataset_path = "../input/data"
-anns_file_path = dataset_path + "/" + "train_all.json"
+dataset_path = "../../../input/data"
+anns_file_path = dataset_path + "/" + "train_all_revise_v2.json"
 
 # Read annotations
 with open(anns_file_path, "r") as f:
@@ -96,9 +96,7 @@ class CustomDataLoader(Dataset):
             # Background = 0
             masks = np.zeros((image_infos["height"], image_infos["width"]))
             # General trash = 1, ... , Cigarette = 10
-            anns = sorted(
-                anns, key=lambda idx: len(idx["segmentation"][0]), reverse=False
-            )
+            anns = sorted(anns, key=lambda idx : idx['area'], reverse=True)
             for i in range(len(anns)):
                 className = get_classname(anns[i]["category_id"], cats)
                 pixel_value = category_names.index(className)
