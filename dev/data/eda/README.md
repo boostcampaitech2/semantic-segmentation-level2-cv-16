@@ -1,2 +1,3 @@
-- [ ] wandb visualization : 상현
+- [x] wandb visualization : 상현
 - [ ] annotation 겹친 후에  픽셀 수 : 상현
+- [ ] test csv 만 있으면 시각화 가능하도록 구현 : 상현

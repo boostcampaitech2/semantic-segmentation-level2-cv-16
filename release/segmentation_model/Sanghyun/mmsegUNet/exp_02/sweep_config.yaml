@@ -1,0 +1,61 @@
+method: bayes
+metric:
+  goal: maximize
+  name: val/mIoU
+parameters:
+  config:
+    value:
+      ./mm_config/default_config.py
+  work_dir:
+    value:
+      ./work_dir/
+  w_0:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_1:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_2:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_3:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_4:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_5:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_6:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_7:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_8:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_9:
+    distribution: uniform
+    min: 0
+    max: 1
+  w_10:
+    distribution: uniform
+    min: 0
+    max: 1
+early_terminate:
+  type: hyperband
+  min_iter: 3    
+program:
+  ./mm_tools/train.py
+  

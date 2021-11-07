@@ -9,5 +9,7 @@ __pycache__
 *.csv
 *.txt
 *.log
+*.out
 *.pth
 *.jpg
+*.pt
