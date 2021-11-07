@@ -1,4 +1,3 @@
-- [ ] : 재현(주)
-- [ ] U-Ncdet 3+ : 상현
+# How to Use It
+----
 
-- UNet version : https://github.com/ZJUGiveLab/UNet-Version
