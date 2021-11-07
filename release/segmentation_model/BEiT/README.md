@@ -17,9 +17,7 @@
 `pip install scipy timm==0.3.2`
 
 ## Pretrained model
-|config|model|
-|------|-----|
-|10_SwinB-UperNet|[pretrained](https://unilm.blob.core.windows.net/beit/beit_large_patch16_224_pt22k_ft22k.pth)|
+[pretrained](https://unilm.blob.core.windows.net/beit/beit_large_patch16_224_pt22k_ft22k.pth)
 
 ## Train
 `bash tools/dist_train.sh {config file} {number of GPU} --work-dir {work dir name} --seed {seed}`
