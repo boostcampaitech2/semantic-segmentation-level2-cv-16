@@ -13,9 +13,13 @@ $ conda activate segmentation
 ```bash
 $ pip install -r segmentation_requirements.txt
 ```
+### 3. Downloading trained models
+Download the trained models and fix config file in '/segmentation_model/HRNetV2_W64_OCR/configs/hrnet_w64_seg_ocr.yaml'
+https://github.com/HRNet/HRNet-Image-Classification
 
 
-### 3. Training
+
+### 4. Training
 
 ```bash
 $ python segmentation_model/HRNetV2_W64_OCR/HRNetV2_W64_OCR/train.py
@@ -29,5 +33,4 @@ The training script has a number of command-line flags that you can use to confi
 - `name`: name of the model in Wandb. 
 - `log_every`: logging interval. Default is `25`
 - `vis_every`: image logging interval. Default is `10`
-
 
