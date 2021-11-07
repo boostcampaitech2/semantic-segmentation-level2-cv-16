@@ -36,7 +36,7 @@ pretrained 모델을 사용하시려면 mmsegmentation의 [swin2mmseg.py](https:
 ```shell
 python tools/model_converters/swin2mmseg.py ${PRETRAIN_PATH} ${STORE_PATH}
 ```
-This script convert model from `PRETRAIN_PATH` and store the converted model in `STORE_PATH`.
+
 현재 repository에 있는 config에서 사용하는 pretrained model은 아래에서 받으실 수 있습니다.
 |config|model|
 |------|-----|
