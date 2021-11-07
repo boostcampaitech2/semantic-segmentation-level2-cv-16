@@ -1,8 +1,6 @@
 import argparse
 import glob
 import os
-
-
 import random
 import re
 from importlib import import_module
@@ -68,29 +66,11 @@ def train(data_dir, model_dir, args):
     # -- augmentation
     train_transform = A.Compose(
         [
-            # A.HorizontalFlip(p=0.5),
-            # A.Rotate(limit=90),
             A.Rotate(limit=90),
             A.RandomResizedCrop(512,512),
-            # A.OneOf([
-            #     # A.RandomCrop (128, 128),
-            #     # A.RandomCrop (256, 256),
-            #     A.Rotate(limit=90)
-            # ]),
-            # A.RandomCrop (256, 256),
-            # A.OneOf([
-            #     A.Resize(256,256),
-            #     A.Resize(384,384),
-            #     A.Resize(512,512),
-            #     A.Resize(768,768),
-            #     A.Resize(1024,1024)
-            # ]),
-            #A.RandomScale(p=1, scale_limit = [0.5, 2.0]),
-            #A.Resize(1024,1024),
             ToTensorV2()
         ]
     )
-
     val_transform = A.Compose([ToTensorV2()])
 
     # data loader
